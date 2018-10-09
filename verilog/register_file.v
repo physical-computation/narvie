@@ -16,7 +16,7 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	assign led_test = regfile[15];//test led
 	
 	initial begin
-		regfile[0] = 32'b0;	//register x0 = 0
+		regfile[0] <= 32'b0;	//register x0 = 0
 	end
 	
 	always @(posedge clk) begin

@@ -1,0 +1,239 @@
+$date
+	Tue Oct  9 18:59:24 2018
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module top $end
+$var wire 1 ! Branch_Enable $end
+$var wire 7 " AluCtl_wire [6:0] $end
+$var wire 32 # ALUOut [31:0] $end
+$var reg 32 $ A [31:0] $end
+$var reg 32 % B [31:0] $end
+$var reg 4 & FuncCode [3:0] $end
+$var reg 7 ' Opcode [6:0] $end
+$var reg 1 ( clk $end
+$scope module aluCtrl_inst $end
+$var wire 4 ) FuncCode [3:0] $end
+$var wire 7 * Opcode [6:0] $end
+$var reg 7 + ALUCtl [6:0] $end
+$upscope $end
+$scope module alu_inst $end
+$var wire 32 , A [31:0] $end
+$var wire 7 - ALUctl [6:0] $end
+$var wire 32 . B [31:0] $end
+$var reg 32 / ALUOut [31:0] $end
+$var reg 1 ! Branch_Enable $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+b0 /
+b0 .
+b1111 -
+b0 ,
+b1111 +
+b0 *
+b0 )
+0(
+b0 '
+b0 &
+b0 %
+b0 $
+b0 #
+b1111 "
+0!
+$end
+#1
+1(
+#2
+0(
+#3
+1(
+#4
+0(
+#5
+b101 #
+b101 /
+b0 "
+b0 +
+b0 -
+1(
+b110011 '
+b110011 *
+b111 &
+b111 )
+b1010101 %
+b1010101 .
+b1111 $
+b1111 ,
+#6
+0(
+#7
+1(
+#8
+0(
+#9
+1(
+#10
+b1011111 #
+b1011111 /
+b1 "
+b1 +
+b1 -
+0(
+b110 &
+b110 )
+#11
+1(
+#12
+0(
+#13
+1(
+#14
+0(
+#15
+b10 "
+b10 +
+b10 -
+b10011101111111 #
+b10011101111111 /
+1(
+b0 &
+b0 )
+b1101111 %
+b1101111 .
+b10011100010000 $
+b10011100010000 ,
+#16
+0(
+#17
+1(
+#18
+0(
+#19
+1(
+#20
+b10011010100001 #
+b10011010100001 /
+b110 "
+b110 +
+b110 -
+0(
+b1000 &
+b1000 )
+#21
+1(
+#22
+0(
+#23
+1(
+#24
+0(
+#25
+b111 "
+b111 +
+b111 -
+b1 #
+b1 /
+1(
+b10 &
+b10 )
+b10 %
+b10 .
+b0 $
+b0 ,
+#26
+0(
+#27
+1(
+#28
+0(
+#29
+1(
+#30
+b11 "
+b11 +
+b11 -
+b100 #
+b100 /
+0(
+b101 &
+b101 )
+b10000 $
+b10000 ,
+#31
+1(
+#32
+0(
+#33
+1(
+#34
+0(
+#35
+b100 "
+b100 +
+b100 -
+1(
+b1101 &
+b1101 )
+b1 %
+b1 .
+b1000 $
+b1000 ,
+#36
+0(
+#37
+1(
+#38
+0(
+#39
+1(
+#40
+b101 "
+b101 +
+b101 -
+b1000 #
+b1000 /
+0(
+b1 &
+b1 )
+b10 %
+b10 .
+b10 $
+b10 ,
+#41
+1(
+#42
+0(
+#43
+1(
+#44
+0(
+#45
+b1000 "
+b1000 +
+b1000 -
+b10101010 #
+b10101010 /
+1(
+b100 &
+b100 )
+b11111111 %
+b11111111 .
+b1010101 $
+b1010101 ,
+#46
+0(
+#47
+1(
+#48
+0(
+#49
+1(
+#50
+0(

@@ -1,7 +1,6 @@
 //Program counter
 
-module program_counter(start, inAddr, outAddr, clk);
-	input start;
+module program_counter(inAddr, outAddr, clk);
 	input clk;
 	input[31:0] inAddr;
 	output reg[31:0] outAddr;
@@ -11,8 +10,6 @@ module program_counter(start, inAddr, outAddr, clk);
 	end
 
 	always @(posedge clk) begin
-		if (start == 1'b1) begin
-			outAddr = inAddr;
-		end
+		outAddr = inAddr;
 	end
 endmodule

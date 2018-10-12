@@ -1,9 +1,8 @@
 //top.v
 //Top level entity, linking cpu with data and instruction memory
 
-module top(led, start);
+module top(led);
 	output[7:0] led;
-	input start;
 	
 	//input	clk;
 	wire clk50;
@@ -47,8 +46,7 @@ module top(led, start);
 			.data_mem_addr(data_addr), 
 			.data_mem_WrData(data_WrData), 
 			.data_mem_memwrite(data_memwrite), 
-			.data_mem_memread(data_memread),
-			.start(start)
+			.data_mem_memread(data_memread)
 		);
 			
 	instruction_memory inst_mem( 

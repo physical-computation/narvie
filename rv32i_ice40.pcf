@@ -9,5 +9,5 @@ set_io led[2] 13 #24A
 set_io led[1] 21 #23B
 set_io led[0] 12 #22A
 
-set_io start  43 #49A
+#set_io start 43 #49A
 

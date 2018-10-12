@@ -9,15 +9,11 @@ module cpu(
 			data_mem_addr, 
 			data_mem_WrData, 
 			data_mem_memwrite, 
-			data_mem_memread,
-			start
+			data_mem_memread
 		);
 	
 	//Input Clock
 	input clk;
-	
-	//program counter start trigger
-	input start; //TODO change/remove
 	
 	//Output LEDs
 	output[7:0] led;
@@ -130,7 +126,6 @@ module cpu(
 		);
 	
 	program_counter PC( 
-			.start(start), //TODO change/remove
 			.inAddr(pc_in), 
 			.outAddr(pc_out), 
 			.clk(clk)

@@ -8,22 +8,6 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	input [4:0] rdAddrB;
 	output [31:0] rdDataB;
 	output [31:0] led_test; //test led
-
-	//reg[31:0] regfile [0:31];
-	
-	/*assign rdDataA = ((wrAddr==rdAddrA) & write & wrAddr!=32'b0) ? wrData : regfile[rdAddrA];
-	assign rdDataB = ((wrAddr==rdAddrB) & write & wrAddr!=32'b0) ? wrData : regfile[rdAddrB];
-	assign led_test = regfile[15];//test led
-	
-	initial begin
-		regfile[0] <= 32'b0;	//register x0 = 0
-	end
-	
-	always @(posedge clk) begin
-		if (write && wrAddr!=32'b0) begin
-			regfile[wrAddr] <= wrData;
-		end
-	end*/
 	
 	//Block RAM interface
 	wire[15:0] rdDataA_MSW;

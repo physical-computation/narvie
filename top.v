@@ -17,12 +17,16 @@ module top(led, start);
 	);
 	
 	//clock divider circuit
+	reg clk2=0;
 	reg clk1=0;
 	reg clk=0;
 	always @(posedge clk50) begin
 		clk1 = ~clk1;
 	end
 	always @(posedge clk1) begin
+		clk2 = ~clk2;
+	end
+	always @(posedge clk2) begin
 		clk = ~clk;
 	end
 	

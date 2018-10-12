@@ -38,7 +38,7 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	wire RAM_write;
 	
 	wire[7:0] led_read_addr;
-	assign led_read_addr = 8'd1;
+	assign led_read_addr = 8'd15;
 	assign RAM_write = (wrAddr == 32'b0) ? 1'b0 : write;
 	
 	//data A block MSW

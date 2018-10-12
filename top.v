@@ -1,9 +1,30 @@
 //top.v
 //Top level entity, linking cpu with data and instruction memory
 
-module top(clk, led);
-	input clk;
+module top(led, start);
 	output[7:0] led;
+	input start;
+	
+	//input	clk;
+	wire clk50;
+	reg ENCLKHF = 1'b1; //clock enable
+	reg CLKHF_POWERUP = 1'b1; //power up the HFOSC circuit
+
+	SB_HFOSC OSCInst0 (
+		.CLKHFEN(ENCLKHF),
+		.CLKHFPU(CLKHF_POWERUP),
+		.CLKHF(clk50)
+	);
+	
+	//clock divider circuit
+	reg clk1=0;
+	reg clk=0;
+	always @(posedge clk50) begin
+		clk1 = ~clk1;
+	end
+	always @(posedge clk1) begin
+		clk = ~clk;
+	end
 	
 	wire[31:0] inst_in;
 	wire[31:0] inst_out;
@@ -22,20 +43,22 @@ module top(clk, led);
 			.data_mem_addr(data_addr), 
 			.data_mem_WrData(data_WrData), 
 			.data_mem_memwrite(data_memwrite), 
-			.data_mem_memread(data_memread)
+			.data_mem_memread(data_memread),
+			.start(start)
 		);
 			
-	/*instruction_memory inst_mem( 
+	instruction_memory inst_mem( 
 			.addr(inst_in), 
 			.out(inst_out)
 		);
 	
-	data_memory data_mem( 
+	data_memory data_mem(
+			.clk(clk),
 			.addr(data_addr),
 			.write_data(data_WrData),
 			.memwrite(data_memwrite), 
 			.memread(data_memread), 
 			.read_data(data_out)
-		);*/
+		);
 
 endmodule

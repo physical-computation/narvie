@@ -9,11 +9,15 @@ module cpu(
 			data_mem_addr, 
 			data_mem_WrData, 
 			data_mem_memwrite, 
-			data_mem_memread
+			data_mem_memread,
+			start
 		);
 	
 	//Input Clock
 	input clk;
+	
+	//program counter start trigger
+	input start; //TODO change/remove
 	
 	//Output LEDs
 	output[7:0] led;
@@ -126,6 +130,7 @@ module cpu(
 		);
 	
 	program_counter PC( 
+			.start(start), //TODO change/remove
 			.inAddr(pc_in), 
 			.outAddr(pc_out), 
 			.clk(clk)
@@ -179,28 +184,28 @@ module cpu(
 	regfile register_files( 
 			.clk(clk), 
 			.write(mem_wb_out[2]), 
-			.wrAddr(mem_wb_out[104:100]), 
+			.wrAddr(mem_wb_out[104:100]),
 			.wrData(reg_dat_mux_out), 
-			.rdAddrA({if_id_out[51:47]}), 
+			.rdAddrA(if_id_out[51:47]), //if_id_out[51:47] //inst_mux_out[19:15]
 			.rdDataA(regA_out), 
-			.rdAddrB({if_id_out[56:52]}), 
+			.rdAddrB(if_id_out[56:52]), //if_id_out[56:52] //inst_mux_out[24:20]
 			.rdDataB(regB_out),
 			.led_test(led_wires) //test_leds
 		);
 	
 	imm_gen immediate_generator( 
-			.inst({if_id_out[63:32]}),
+			.inst(if_id_out[63:32]),
 			.imm(imm_out)
 		);
 	
-	csr_file ControlAndStatus_registers(
+	/*csr_file ControlAndStatus_registers(
 			.clk(clk), 
 			.write(mem_wb_out[3]), //TODO
 			.wrAddr_CSR(mem_wb_out[116:105]), 
 			.wrVal_CSR(mem_wb_out[35:4]), 
 			.rdAddr_CSR(if_id_out[63:52]), 
 			.rdVal_CSR(rdValOut_CSR)
-		);
+		);*/
 	
 	mux2to1 RegA_mux( 
 			.input0(regA_out),
@@ -430,13 +435,13 @@ module cpu(
 	assign inst_mem_in = pc_out;
 	
 	//Data Memory Connections
-	assign data_mem_addr = ex_mem_out[105:74];
-	assign data_mem_WrData = ex_mem_out[137:106];
-	assign data_mem_memwrite = ex_mem_out[4];
-	assign data_mem_memread = ex_mem_out[5];
+	assign data_mem_addr = lui_result;
+	assign data_mem_WrData = wb_fwd2_mux_out;
+	assign data_mem_memwrite = ex_cont_mux_out[4];
+	assign data_mem_memread = ex_cont_mux_out[5];
 	
-	//leds
+	//leds (test output)
 	assign led = led_wires[7:0];
-
+	
 endmodule
 	

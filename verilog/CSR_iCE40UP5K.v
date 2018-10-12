@@ -19,7 +19,7 @@ module csr_file (clk, write, wrAddr_CSR, wrVal_CSR, rdAddr_CSR, rdVal_CSR);
 	end
 	
 	
-	//
+	/*
 	SB_RAM40_4K endValueSPRAM (
 		.RDATA(endValueRDATA),
 		.RADDR(blockRamAddr),
@@ -35,4 +35,5 @@ module csr_file (clk, write, wrAddr_CSR, wrVal_CSR, rdAddr_CSR, rdVal_CSR);
 	);
 	defparam endValueSPRAM.READ_MODE=0;
 	defparam endValueSPRAM.WRITE_MODE=0;
+	*/
 endmodule

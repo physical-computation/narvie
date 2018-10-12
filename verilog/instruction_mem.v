@@ -7,7 +7,7 @@ module instruction_memory(addr, out);
 	
 	initial begin
 		//read from "program.hex" and store the instructions in instruction memory
-		$readmemh("/home/ryan/Projects/rv32_processor/verilog/program.hex",instruction_memory);
+		$readmemh("/home/ryan/RV32I_iCE40/verilog/program.hex",instruction_memory);
 	end
 	
 	assign out = instruction_memory[addr >> 2];

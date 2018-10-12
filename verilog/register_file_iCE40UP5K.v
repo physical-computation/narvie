@@ -26,30 +26,30 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	end*/
 	
 	//Block RAM interface
-	wire[16:0] rdDataA_MSW;
-	wire[16:0] rdDataA_LSW;
+	wire[15:0] rdDataA_MSW;
+	wire[15:0] rdDataA_LSW;
 	
-	wire[16:0] rdDataB_MSW;
-	wire[16:0] rdDataB_LSW;
+	wire[15:0] rdDataB_MSW;
+	wire[15:0] rdDataB_LSW;
 	
-	wire[16:0] ledVal_MSW;
-	wire[16:0] ledVal_LSW;
+	wire[15:0] ledVal_MSW;
+	wire[15:0] ledVal_LSW;
 	
 	wire RAM_write;
 	
 	wire[7:0] led_read_addr;
-	assign led_read_addr = 8'd15;
+	assign led_read_addr = 8'd1;
 	assign RAM_write = (wrAddr == 32'b0) ? 1'b0 : write;
 	
 	//data A block MSW
-	SB_RAM40_4K dataA_MSW (
+	SB_RAM40_4KNRNW dataA_MSW (
 		.RDATA(rdDataA_MSW),
 		.RADDR({3'b0, rdAddrA}),
-		.RCLK(clk),
+		.RCLKN(clk),
 		.RCLKE(1'b1),
 		.RE(1'b1),
 		.WADDR({3'b0, wrAddr}),
-		.WCLK(clk),
+		.WCLKN(clk),
 		.WCLKE(1'b1),
 		.WDATA(wrData[31:16]),
 		.WE(RAM_write),
@@ -59,14 +59,14 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	defparam dataA_MSW.WRITE_MODE=0;
 	
 	//data A block LSW
-	SB_RAM40_4K dataA_LSW (
+	SB_RAM40_4KNRNW dataA_LSW (
 		.RDATA(rdDataA_LSW),
 		.RADDR({3'b0, rdAddrA}),
-		.RCLK(clk),
+		.RCLKN(clk),
 		.RCLKE(1'b1),
 		.RE(1'b1),
 		.WADDR({3'b0, wrAddr}),
-		.WCLK(clk),
+		.WCLKN(clk),
 		.WCLKE(1'b1),
 		.WDATA(wrData[15:0]),
 		.WE(RAM_write),
@@ -77,14 +77,14 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	
 	
 	//data B block MSW
-	SB_RAM40_4K dataB_MSW (
-		.RDATA(rdDataAB_MSW),
+	SB_RAM40_4KNRNW dataB_MSW (
+		.RDATA(rdDataB_MSW),
 		.RADDR({3'b0, rdAddrB}),
-		.RCLK(clk),
+		.RCLKN(clk),
 		.RCLKE(1'b1),
 		.RE(1'b1),
 		.WADDR({3'b0, wrAddr}),
-		.WCLK(clk),
+		.WCLKN(clk),
 		.WCLKE(1'b1),
 		.WDATA(wrData[31:16]),
 		.WE(RAM_write),
@@ -94,14 +94,14 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	defparam dataB_MSW.WRITE_MODE=0;
 	
 	//data B block LSW
-	SB_RAM40_4K dataB_LSW (
+	SB_RAM40_4KNRNW dataB_LSW (
 		.RDATA(rdDataB_LSW),
 		.RADDR({3'b0, rdAddrB}),
-		.RCLK(clk),
+		.RCLKN(clk),
 		.RCLKE(1'b1),
 		.RE(1'b1),
 		.WADDR({3'b0, wrAddr}),
-		.WCLK(clk),
+		.WCLKN(clk),
 		.WCLKE(1'b1),
 		.WDATA(wrData[15:0]),
 		.WE(RAM_write),
@@ -113,14 +113,14 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	
 	
 	//ledVal block MSW
-	SB_RAM40_4K ledVal_MSW_inst (
+	SB_RAM40_4KNRNW ledVal_MSW_inst (
 		.RDATA(ledVal_MSW),
-		.RADDR({led_read_addr),
-		.RCLK(clk),
+		.RADDR(led_read_addr),
+		.RCLKN(clk),
 		.RCLKE(1'b1),
 		.RE(1'b1),
 		.WADDR({3'b0, wrAddr}),
-		.WCLK(clk),
+		.WCLKN(clk),
 		.WCLKE(1'b1),
 		.WDATA(wrData[31:16]),
 		.WE(RAM_write),
@@ -130,14 +130,14 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	defparam ledVal_MSW_inst.WRITE_MODE=0;
 	
 	//ledVal block LSW
-	SB_RAM40_4K ledVal_LSW_inst (
+	SB_RAM40_4KNRNW ledVal_LSW_inst (
 		.RDATA(ledVal_LSW),
 		.RADDR(led_read_addr),
-		.RCLK(clk),
+		.RCLKN(clk),
 		.RCLKE(1'b1),
 		.RE(1'b1),
 		.WADDR({3'b0, wrAddr}),
-		.WCLK(clk),
+		.WCLKN(clk),
 		.WCLKE(1'b1),
 		.WDATA(wrData[15:0]),
 		.WE(RAM_write),

@@ -1,5 +1,0 @@
-#!/bin/bash
-
-iverilog verilog/adder.v verilog/alu.v verilog/alu_control.v verilog/branch_decide.v verilog/branch_predictor.v verilog/control_unit.v verilog/cpu.v verilog/data_memory.v verilog/forwarding_unit.v  verilog/imm_gen.v verilog/instruction_mem.v verilog/mux2to1.v verilog/pipeline_registers.v verilog/program_counter.v verilog/register_file.v verilog/CSR.v top_sim.v
-vvp a.out
-gtkwave processor.vcd

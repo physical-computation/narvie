@@ -181,9 +181,9 @@ module cpu(
 			.write(mem_wb_out[2]), 
 			.wrAddr(mem_wb_out[104:100]),
 			.wrData(reg_dat_mux_out), 
-			.rdAddrA(if_id_out[51:47]), //if_id_out[51:47] //inst_mux_out[19:15]
+			.rdAddrA(inst_mux_out[19:15]), //if_id_out[51:47] //inst_mux_out[19:15]
 			.rdDataA(regA_out), 
-			.rdAddrB(if_id_out[56:52]), //if_id_out[56:52] //inst_mux_out[24:20]
+			.rdAddrB(inst_mux_out[24:20]), //if_id_out[56:52] //inst_mux_out[24:20]
 			.rdDataB(regB_out),
 			.led_test(led_wires) //test_leds
 		);

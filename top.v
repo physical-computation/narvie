@@ -5,30 +5,17 @@ module top(led);
 	output[7:0] led;
 	
 	//input	clk;
-	wire clk50;
+	wire clk;
 	reg ENCLKHF = 1'b1; //clock enable
 	reg CLKHF_POWERUP = 1'b1; //power up the HFOSC circuit
 
-	SB_HFOSC OSCInst0 (
+	SB_HFOSC #(.CLKHF_DIV("0b11")) OSCInst0 (
 		.CLKHFEN(ENCLKHF),
 		.CLKHFPU(CLKHF_POWERUP),
-		.CLKHF(clk50)
+		.CLKHF(clk)
 	);
 	
-	//clock divider circuit
-	reg clk2=0;
-	reg clk1=0;
-	reg clk=0;
-	always @(posedge clk50) begin
-		clk1 = ~clk1;
-	end
-	always @(posedge clk1) begin
-		clk2 = ~clk2;
-	end
-	always @(posedge clk2) begin
-		clk = ~clk;
-	end
-	
+	//Interface
 	wire[31:0] inst_in;
 	wire[31:0] inst_out;
 	wire[31:0] data_out;

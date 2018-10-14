@@ -4,11 +4,31 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	input [4:0] wrAddr;
 	input [31:0] wrData;
 	input [4:0] rdAddrA;
-	output [31:0] rdDataA;
+	output reg[31:0] rdDataA;
 	input [4:0] rdAddrB;
-	output [31:0] rdDataB;
-	output [31:0] led_test; //test led
+	output reg[31:0] rdDataB;
+	output reg[31:0] led_test; //test led
 	
+	reg[31:0] regfile[31:0];
+	
+	generate
+        genvar i;
+        for (i = 0; i < 32; i = i+1) begin
+            initial
+                regfile[i] <= 0;
+        end
+    endgenerate
+	
+	always @(posedge clk) begin
+		if(write==1'b1 && wrAddr!=5'b0) begin
+			regfile[wrAddr] <= wrData;
+		end
+		rdDataA <= regfile[rdAddrA];
+		rdDataB <= regfile[rdAddrB];
+		led_test <= regfile[5'd15];
+	end
+	
+	/*
 	//Block RAM interface
 	wire[15:0] rdDataA_MSW;
 	wire[15:0] rdDataA_LSW;
@@ -134,5 +154,6 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	assign rdDataA = {rdDataA_MSW, rdDataA_LSW};
 	assign rdDataB = {rdDataB_MSW, rdDataB_LSW};
 	assign led_test = {ledVal_MSW, ledVal_LSW};//test led
+	*/
 	
 endmodule

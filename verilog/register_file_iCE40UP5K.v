@@ -130,12 +130,9 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 	defparam ledVal_LSW_inst.READ_MODE=0;
 	defparam ledVal_LSW_inst.WRITE_MODE=0;
 	
-	reg[4:0] rdAddrA_clocked;
-	reg[4:0] rdAddrB_clocked;
-	
 	//signal assignments
-	assign rdDataA = ((wrAddr==rdAddrA_clocked) & write & wrAddr!=32'b0) ? wrData : {rdDataA_MSW, rdDataA_LSW};
-	assign rdDataB = ((wrAddr==rdAddrB_clocked) & write & wrAddr!=32'b0) ? wrData : {rdDataB_MSW, rdDataB_LSW};
+	assign rdDataA = {rdDataA_MSW, rdDataA_LSW};
+	assign rdDataB = {rdDataB_MSW, rdDataB_LSW};
 	assign led_test = {ledVal_MSW, ledVal_LSW};//test led
 	
 endmodule

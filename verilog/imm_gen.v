@@ -9,7 +9,7 @@ module imm_gen(inst, imm);
 		imm = 32'b0;
 	end
 	
-	always @(*) begin
+	always @(inst) begin
 		case ({inst[6:5], inst[3:2]})
 			4'b0000: //I-type
 				imm <= { {21{inst[31]}}, inst[30:20] };

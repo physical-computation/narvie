@@ -2,8 +2,12 @@
 
 yosys -p "synth_ice40 -blif rv32i_ice40.blif;" verilog/adder.v verilog/cpu.v verilog/mux2to1.v verilog/alu_control.v verilog/pipeline_registers.v verilog/alu.v verilog/data_memory_iCE40UP5K.v verilog/program_counter.v verilog/branch_decide.v verilog/forwarding_unit.v verilog/branch_predictor.v verilog/imm_gen.v verilog/control_unit.v verilog/instruction_mem.v verilog/register_file_iCE40UP5K.v top.v
 
-arachne-pnr -q -d 5k -P sg48 -p rv32i_ice40.pcf rv32i_ice40.blif -o rv32i_ice40.asc
+arachne-pnr -d 5k -P sg48 -p rv32i_ice40.pcf rv32i_ice40.blif -o rv32i_ice40.asc
+
+#icebram verilog/program_syn.hex verilog/program.hex < rv32i_ice40.asc > rv32i_ice40.asc
 
 icepack rv32i_ice40.asc rv32i_ice40.bin
 
 iceprog -S rv32i_ice40.bin
+
+#icebram verilog/program_syn.hex verilog/program.hex < rv32i_ice40.asc > rv32i_ice40.asc

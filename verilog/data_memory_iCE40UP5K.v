@@ -5,8 +5,20 @@ module data_memory (clk, addr, write_data, memwrite, memread, read_data);
 	input[31:0] addr;
 	input[31:0] write_data;
 	input memwrite, memread;
-	output [31:0] read_data;
-
+	output reg[31:0] read_data;
+	
+	reg[31:0] datamem[2047:0];
+	
+	always @(posedge clk) begin
+		if(memwrite==1'b1) begin
+			datamem[addr] <= write_data;
+		end
+		if(memread==1'b1) begin
+			read_data <= datamem[addr];
+		end
+	end
+	
+	/*
 	//internal signals
 	wire[15:0] read_data_MSW;
 	wire[15:0] read_data_LSW;
@@ -44,5 +56,6 @@ module data_memory (clk, addr, write_data, memwrite, memread, read_data);
 	assign read_data = {read_data_MSW, read_data_LSW};
 	assign WREN = memwrite & (~memread);
 	assign CS = memwrite | memread;
+	*/
 	
 endmodule

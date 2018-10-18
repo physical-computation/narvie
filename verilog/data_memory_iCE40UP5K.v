@@ -9,6 +9,8 @@ module data_memory (clk, addr, write_data, memwrite, memread, read_data);
 	
 	reg[31:0] datamem[2047:0];
 	
+	//BRAM implementation
+	/*
 	always @(posedge clk) begin
 		if(memwrite==1'b1) begin
 			datamem[addr] <= write_data;
@@ -17,8 +19,10 @@ module data_memory (clk, addr, write_data, memwrite, memread, read_data);
 			read_data <= datamem[addr];
 		end
 	end
+	*/
 	
-	/*
+	//SPRAM implementation
+	
 	//internal signals
 	wire[15:0] read_data_MSW;
 	wire[15:0] read_data_LSW;
@@ -56,6 +60,5 @@ module data_memory (clk, addr, write_data, memwrite, memread, read_data);
 	assign read_data = {read_data_MSW, read_data_LSW};
 	assign WREN = memwrite & (~memread);
 	assign CS = memwrite | memread;
-	*/
 	
 endmodule

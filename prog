@@ -9,5 +9,3 @@ arachne-pnr -d 5k -P sg48 -p rv32i_ice40.pcf rv32i_ice40.blif -o rv32i_ice40.asc
 icepack rv32i_ice40.asc rv32i_ice40.bin
 
 iceprog -S rv32i_ice40.bin
-
-#icebram verilog/program_syn.hex verilog/program.hex < rv32i_ice40.asc > rv32i_ice40.asc

@@ -193,14 +193,14 @@ module cpu(
 			.imm(imm_out)
 		);
 	
-	/*csr_file ControlAndStatus_registers(
+	csr_file ControlAndStatus_registers(
 			.clk(clk), 
 			.write(mem_wb_out[3]), //TODO
 			.wrAddr_CSR(mem_wb_out[116:105]), 
 			.wrVal_CSR(mem_wb_out[35:4]), 
-			.rdAddr_CSR(if_id_out[63:52]), 
+			.rdAddr_CSR(inst_mux_out[31:20]), 
 			.rdVal_CSR(rdValOut_CSR)
-		);*/
+		);
 	
 	mux2to1 RegA_mux( 
 			.input0(regA_out),

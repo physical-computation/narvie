@@ -7,7 +7,7 @@ module data_memory (clk, addr, write_data, memwrite, memread, read_data);
 	input memwrite, memread;
 	output reg[31:0] read_data;
 	
-	reg[31:0] datamem[2047:0];
+	//reg[31:0] datamem[2047:0];
 	
 	//BRAM implementation
 	/*

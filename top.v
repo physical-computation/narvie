@@ -23,17 +23,18 @@ module top(led);
 	wire[31:0] data_WrData;
 	wire data_memwrite;
 	wire data_memread;
+	wire[3:0] data_sign_mask;
 	
 	cpu processor( 
 			.clk(clk), 
-			.led(led), 
 			.inst_mem_in(inst_in), 
 			.inst_mem_out(inst_out), 
 			.data_mem_out(data_out), 
 			.data_mem_addr(data_addr), 
 			.data_mem_WrData(data_WrData), 
 			.data_mem_memwrite(data_memwrite), 
-			.data_mem_memread(data_memread)
+			.data_mem_memread(data_memread),
+			.data_mem_sign_mask(data_sign_mask)
 		);
 			
 	instruction_memory inst_mem( 
@@ -47,7 +48,9 @@ module top(led);
 			.write_data(data_WrData),
 			.memwrite(data_memwrite), 
 			.memread(data_memread), 
-			.read_data(data_out)
+			.read_data(data_out),
+			.sign_mask(data_sign_mask),
+			.led(led)
 		);
 
 endmodule

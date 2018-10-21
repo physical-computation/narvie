@@ -2,21 +2,18 @@
 
 module cpu( 
 			clk, 
-			led, 
 			inst_mem_in, 
 			inst_mem_out, 
 			data_mem_out, 
 			data_mem_addr, 
 			data_mem_WrData, 
 			data_mem_memwrite, 
-			data_mem_memread
+			data_mem_memread,
+			data_mem_sign_mask
 		);
 	
 	//Input Clock
 	input clk;
-	
-	//Output LEDs
-	output[7:0] led;
 	
 	//instruction memory input
 	output[31:0] inst_mem_in;
@@ -28,6 +25,7 @@ module cpu(
 	output[31:0] data_mem_WrData;
 	output data_mem_memwrite; 
 	output data_mem_memread;
+	output[3:0] data_mem_sign_mask;
 	
 	//Program Counter
 	wire[31:0] pc_mux0;
@@ -68,6 +66,7 @@ module cpu(
 	wire[31:0] RegA_AddrFwdFlush_mux_out;
 	wire[31:0] RegB_AddrFwdFlush_mux_out;
 	wire[31:0] rdValOut_CSR;
+	wire[3:0]  dataMem_sign_mask;
 	
 	//execute stage
 	wire[31:0] ex_cont_mux_out;
@@ -107,9 +106,6 @@ module cpu(
 	wire mistake_trigger;
 	wire decode_ctrl_mux_sel;
 	wire inst_mux_sel;
-	
-	//test_leds
-	wire[31:0] led_wires;
 	
 	//Instruction Fetch Stage
 	mux2to1 pc_mux( 
@@ -185,12 +181,22 @@ module cpu(
 			.rdDataA(regA_out), 
 			.rdAddrB(inst_mux_out[24:20]), //if_id_out[56:52] //inst_mux_out[24:20]
 			.rdDataB(regB_out),
-			.led_test(led_wires) //test_leds
 		);
 	
 	imm_gen immediate_generator( 
 			.inst(if_id_out[63:32]),
 			.imm(imm_out)
+		);
+	
+	ALUControl alu_control( 
+			.Opcode(if_id_out[38:32]),
+			.FuncCode({if_id_out[62], if_id_out[46:44]}),
+			.ALUCtl(alu_ctl)
+		);
+	
+	sign_mask_gen sign_mask_gen_inst(
+			.func3(if_id_out[46:44]),
+			.sign_mask(dataMem_sign_mask)
 		);
 	
 	csr_file ControlAndStatus_registers(
@@ -235,7 +241,7 @@ module cpu(
 	//ID/EX Pipeline Register
 	id_ex id_ex_reg( 
 			.clk(clk), 
-			.data_in({if_id_out[63:52], RegB_AddrFwdFlush_mux_out[4:0], RegA_AddrFwdFlush_mux_out[4:0], if_id_out[43:39], if_id_out[62], if_id_out[46:44], if_id_out[38:32], imm_out, RegB_mux_out, RegA_mux_out, if_id_out[31:0], cont_mux_out[10:7], predict, cont_mux_out[6:0]}), 
+			.data_in({if_id_out[63:52], RegB_AddrFwdFlush_mux_out[4:0], RegA_AddrFwdFlush_mux_out[4:0], if_id_out[43:39], dataMem_sign_mask, alu_ctl, imm_out, RegB_mux_out, RegA_mux_out, if_id_out[31:0], cont_mux_out[10:7], predict, cont_mux_out[6:0]}), 
 			.data_out(id_ex_out)
 		);
 	
@@ -267,14 +273,8 @@ module cpu(
 			.out(alu_mux_out)
 		);
 	
-	ALUControl alu_control( 
-			.Opcode(id_ex_out[146:140]),
-			.FuncCode(id_ex_out[150:147]),
-			.ALUCtl(alu_ctl)
-		);
-	
 	alu alu_main( 
-			.ALUctl(alu_ctl), 
+			.ALUctl(id_ex_out[146:140]), 
 			.A(wb_fwd1_mux_out), 
 			.B(alu_mux_out), 
 			.ALUOut(alu_result),
@@ -434,9 +434,7 @@ module cpu(
 	assign data_mem_WrData = wb_fwd2_mux_out;
 	assign data_mem_memwrite = ex_cont_mux_out[4];
 	assign data_mem_memread = ex_cont_mux_out[5];
-	
-	//leds (test output)
-	assign led = led_wires[7:0];
+	assign data_mem_sign_mask = id_ex_out[150:147];
 	
 endmodule
 	

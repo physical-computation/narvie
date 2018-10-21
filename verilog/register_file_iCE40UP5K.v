@@ -1,23 +1,56 @@
-module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, led_test/*test led*/);
+module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB/*, led_test*//*test led*/);
 	input clk;
 	input write;
 	input [4:0] wrAddr;
 	input [31:0] wrData;
 	input [4:0] rdAddrA;
-	output reg[31:0] rdDataA;
+	output[31:0] rdDataA;
 	input [4:0] rdAddrB;
-	output reg[31:0] rdDataB;
-	output reg[31:0] led_test; //test led
+	output[31:0] rdDataB;
+	//output[31:0] led_test; //test led
 	
 	reg[31:0] regfile[31:0];
 	
+	/*
+	//registers for forwarding
+	reg[4:0] rdAddrA_clocked;
+	reg[4:0] rdAddrB_clocked;
+	reg[31:0] regDatA;
+	reg[31:0] regDatB;
+	
+	
+	initial begin
+		regfile[0] = 32'b0;	//register x0 = 0
+	end
+	
+	always @(posedge clk) begin
+		rdAddrA_clocked <= rdAddrA;
+		rdAddrB_clocked <= rdAddrB;
+	end
+	
+	always @(posedge clk) begin
+		regDatA <= regfile[rdAddrA];
+		regDatB <= regfile[rdAddrB];
+		led_test <= regfile[5'd15];
+	end
+	
+	always @(negedge clk) begin
+		if (write && wrAddr!=32'b0) begin
+			regfile[wrAddr] <= wrData;
+		end
+	end
+	
+	assign rdDataA = ((wrAddr==rdAddrA_clocked) & write & wrAddr!=32'b0) ? wrData : regDatA;
+	assign rdDataB = ((wrAddr==rdAddrB_clocked) & write & wrAddr!=32'b0) ? wrData : regDatB;
+	*/
+	
 	generate
-        genvar i;
-        for (i = 0; i < 32; i = i+1) begin
-            initial
-                regfile[i] <= 0;
-        end
-    endgenerate
+		genvar i;
+		for (i = 0; i < 32; i = i+1) begin
+			initial
+				regfile[i] <= 0;
+		end
+  endgenerate
 	
 	always @(posedge clk) begin
 		if(write==1'b1 && wrAddr!=5'b0) begin
@@ -25,7 +58,7 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, l
 		end
 		rdDataA <= regfile[rdAddrA];
 		rdDataB <= regfile[rdAddrB];
-		led_test <= regfile[5'd15];
+		//led_test <= regfile[5'd15];
 	end
 	
 	/*

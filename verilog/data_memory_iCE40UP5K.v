@@ -1,11 +1,21 @@
 //Data memory iCE40UP5K using SPRAM
 
-module data_memory (clk, addr, write_data, memwrite, memread, read_data);
+module data_memory (clk, addr, write_data, memwrite, memread, sign_mask, read_data, led);
 	input clk;
 	input[31:0] addr;
 	input[31:0] write_data;
 	input memwrite, memread;
+	input[3:0] sign_mask;
 	output reg[31:0] read_data;
+	output [7:0] led;
+	
+	reg [31:0] led_reg;
+	
+	always @(posedge clk) begin
+		if(memwrite == 1'b1 && addr == 32'h2000) begin
+			led_reg <= write_data;
+		end
+	end
 	
 	//reg[31:0] datamem[2047:0];
 	
@@ -60,5 +70,8 @@ module data_memory (clk, addr, write_data, memwrite, memread, read_data);
 	assign read_data = {read_data_MSW, read_data_LSW};
 	assign WREN = memwrite & (~memread);
 	assign CS = memwrite | memread;
+	
+	//test led
+	assign led = led_reg[7:0];
 	
 endmodule

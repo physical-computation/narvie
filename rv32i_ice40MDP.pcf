@@ -1,0 +1,13 @@
+#pcf file for the iCE40 Ultra Plus FPGA
+
+set_io led[7] E4  #9A
+set_io led[6] D5 #2A
+set_io led[5] E5 #0A
+set_io led[4] F4 #11B_G5
+set_io led[3] E3 #13B
+set_io led[2] F2 #25B_G3
+set_io led[1] B1 #24A
+set_io led[0] C3 #10A
+
+#set_io start 43 #49A
+

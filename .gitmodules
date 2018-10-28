@@ -1,4 +1,0 @@
-[submodule "cross-compiler-build"]
-	path = cross-compiler-build
-	url = git@github.com:physical-computation/cross-compiler-build.git
-	branch = master

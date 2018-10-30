@@ -1,0 +1,3 @@
+#!/bin/sh
+
+../cross-compiler-build/bin/riscv32-elf-objdump -S led

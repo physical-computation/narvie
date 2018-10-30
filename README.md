@@ -14,9 +14,9 @@ After downloading, `cd` back to `cross-compiler-build` and run `make`, this shou
  
 ## Step 4 - Programming the FPGA
 If you're using the iCE40 MDP, then in the root of the repository run:<br>
-./progMDP<br><br>
+`./progMDP`<br><br>
 
 If you're using the iCE40 breakout board, run:<br>
-./prog<br><br>
+`./prog`<br><br>
 
 Note that the pins used will be dependent on the respective `pcf` files.

@@ -13,10 +13,11 @@ After downloading, `cd` back to `cross-compiler-build` and run `make`, this shou
  The processor contains a memory mapped register at location *0x2000*, and the program writes a value to that register which the lower 8 bits is then shown by the pin outputs (you can connect them to leds to see them blink).
  
 ## Step 4 - Programming the FPGA
-If you're using the iCE40 MDP, then in the root of the repository run:<br>
-`./progMDP`<br><br>
+1. If you're using the iCE40 MDP, then in the root of the repository run:<br>
+`./progMDP`<br>
+In this example device U3 is used.<br><br>
 
-If you're using the iCE40 breakout board, run:<br>
+2. If you're using the iCE40 breakout board, run:<br>
 `./prog`<br><br>
 
 Note that the pins used will be dependent on the respective `pcf` files.

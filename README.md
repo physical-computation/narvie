@@ -5,7 +5,7 @@ To clone the respository, use: <br >
  `$ git clone --recursive git@github.com:physical-computation/RV32I_iCE40.git`<br >
 
 ## Step 2 - Building the toolchain
-`cd` into the directory and then into `cross-compiler-build`, edit `conf/setup.conf` and set appropriately for risc-v. Afterwards, `cd` into `source` and run `./downloads.sh`, which will populate the folder with distributions of GCC, Newlib and Binutils.<br><br>
+`cd` into the directory and then into `cross-compiler-build`, edit `conf/setup.conf` and edit the setup appropriately. Afterwards, `cd` into `source` and run `./downloads.sh`, which will populate the folder with distributions of GCC, Newlib and Binutils.<br><br>
 After downloading, `cd` back to `cross-compiler-build` and run `make`, this should automatically build the toolchains and place the executable binaries in `cross-compiler-build/bin`.
 
 ## Step 3 - Compiling the program

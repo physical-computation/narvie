@@ -14,7 +14,7 @@ module sign_mask_gen(func3, sign_mask);
 	*/
 	
 	always @(*) begin
-		case(func3)
+		case(func3[1:0])
 			2'b00: mask <= 3'b001; //byte only
 			2'b01: mask <= 3'b011; //halfword
 			2'b10: mask <= 3'b111; //word

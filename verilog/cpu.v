@@ -180,7 +180,7 @@ module cpu(
 			.rdAddrA(inst_mux_out[19:15]), //if_id_out[51:47] //inst_mux_out[19:15]
 			.rdDataA(regA_out), 
 			.rdAddrB(inst_mux_out[24:20]), //if_id_out[56:52] //inst_mux_out[24:20]
-			.rdDataB(regB_out),
+			.rdDataB(regB_out)
 		);
 	
 	imm_gen immediate_generator( 

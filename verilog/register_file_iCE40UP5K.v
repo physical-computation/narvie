@@ -44,13 +44,17 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB/*,
 	assign rdDataB = ((wrAddr==rdAddrB_clocked) & write & wrAddr!=32'b0) ? wrData : regDatB;
 	*/
 	
-	generate
+	initial begin
+		regfile[0] = 32'b0;
+	end
+	
+	/*generate
 		genvar i;
 		for (i = 0; i < 32; i = i+1) begin
 			initial
 				regfile[i] <= 0;
 		end
-  endgenerate
+  endgenerate*/
 	
 	always @(posedge clk) begin
 		if(write==1'b1 && wrAddr!=5'b0) begin

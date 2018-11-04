@@ -142,11 +142,11 @@ module ALUControl(FuncCode, ALUCtl, Opcode);
 			
 			7'b1110011:
 				case(FuncCode[1:0]) //use lower 2 bits of FuncCode to determine operation
-					3'b01:
+					2'b01:
 						ALUCtl <= 7'b0001001; //CSRRW
-					3'b10:
+					2'b10:
 						ALUCtl <= 7'b0001010; //CSRRS
-					3'b11:
+					2'b11:
 						ALUCtl <= 7'b0001011; //CSRRC
 					default:
 						ALUCtl <= 7'b0001111;

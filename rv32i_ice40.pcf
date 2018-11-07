@@ -11,3 +11,4 @@ set_io led[0] 12 #22A
 
 #set_io start 43 #49A
 
+set_io tx   	4

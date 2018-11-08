@@ -8,4 +8,3 @@ init:
 	addi  sp,sp,-1
 	j			main
 
-

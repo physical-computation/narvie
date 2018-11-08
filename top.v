@@ -84,8 +84,8 @@ module top(led, tx);
 	assign clk_proc = (tx_start) ? 1'b1 : clk6;
 	
 	always @(posedge clk6) begin
-		if(data_memwrite == 1'b1 && data_addr == 32'h2000) begin
-			tx_data <= data_WrData[7:0] + "0";
+		if(data_memwrite == 1'b1 && data_addr == 32'h2001) begin
+			tx_data <= data_WrData[7:0];
 			tx_start <= 1'b1;
 		end
 		if(tx_ready == 1'b0 && tx_start == 1'b1) begin

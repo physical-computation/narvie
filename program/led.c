@@ -1,8 +1,11 @@
 #include<stdio.h>
+#include <stdlib.h>
+#include "uart_print.h"
 
 void infinite_loop(int i, int delay, int shift_right, int decrease_delay, const int delay_step_change){
 	int j=0;
 	volatile unsigned int *led = (unsigned int *)0x2000;
+	char hello[7] = {};
 	while(1){
   	//delay
   	//for (j=0; j<625000; j++){}; //625000
@@ -13,6 +16,14 @@ void infinite_loop(int i, int delay, int shift_right, int decrease_delay, const 
   	else i = i << 1;
   	
   	*led = i;
+  	hello[0] = 'B';
+  	hello[1] = 'e';
+  	hello[2] = 'l';
+  	hello[3] = 'l';
+  	hello[4] = 'o';
+  	hello[5] = '\n';
+  	hello[6] = '\0';
+  	uart_print(hello);
   	
   	if(i == 128) {
   		shift_right = 1;

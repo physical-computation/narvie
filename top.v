@@ -76,20 +76,28 @@ module top(led, tx);
 			.clk(clk12),
 			.rstn(1'b1),
 			.data(tx_data),
-			.start(tx_start),
+			.start(1'b1),
 			.tx(tx),
 			.ready(tx_ready)
 		);
 	
 	assign clk_proc = (tx_start) ? 1'b1 : clk6;
 	
+	reg intermediate = 0;
+	
 	always @(posedge clk6) begin
 		if(data_memwrite == 1'b1 && data_addr == 32'h2001) begin
 			tx_data <= data_WrData[7:0];
 			tx_start <= 1'b1;
+			intermediate <= 1'b0;
 		end
 		if(tx_ready == 1'b0 && tx_start == 1'b1) begin
+			tx_start <= 1'b1;
+			intermediate <= 1'b1;
+		end
+		if(intermediate == 1'b1 && tx_ready == 1'b1 && tx_start == 1'b1) begin
 			tx_start <= 1'b0;
+			intermediate <= 1'b0;
 		end
 	end
 

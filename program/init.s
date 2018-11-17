@@ -4,7 +4,7 @@
 _start:
 
 init:
-	li		sp,8192
+	li		sp,2048
 	addi  sp,sp,-1
 	j			main
 

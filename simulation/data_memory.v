@@ -21,6 +21,10 @@ module data_memory (clk, addr, write_data, memwrite, memread, sign_mask, read_da
 	
 	//BRAM implementation
 	
+	initial begin
+		$readmemh("simulation/data.hex", datamem);
+	end
+	
 	always @(posedge clk) begin
 		if(memwrite==1'b1) begin
 			datamem[addr] <= write_data;

@@ -8,6 +8,7 @@ module top(led, tx);
 	reg[7:0] tx_data;
 	reg tx_start;
 	wire tx_ready;
+	wire clk_proc;
 	
 	//input	clk;
 	wire clk48;

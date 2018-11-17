@@ -117,7 +117,7 @@ reg [1:0] next_state;
 
 //-- Initialize state
 initial begin
-	state <= IDLE; //IDLE
+	state = IDLE; //IDLE
 end
 
 //-- Transition between states

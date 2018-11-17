@@ -6,7 +6,7 @@ void infinite_loop(int i, int delay, int shift_right, int decrease_delay, const 
 	int j=0;
 	volatile unsigned int *led = (unsigned int *)0x2000;
 	//char hello[9] = {};
-	char* hello = "Hello!\r\n";
+	char* hello = "Hello!\r\n\0";
 	while(1){
   	//delay
   	//for (j=0; j<625000; j++){}; //625000

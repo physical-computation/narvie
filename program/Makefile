@@ -6,7 +6,7 @@ INIT			= init
 
 OPTFLAGS	= -g -O0
 CFLAGS		= $(TARGET-ARCH-FLAGS) -Wall 
-LDFLAGS		= -Ttext $(LOADADDR)
+LDFLAGS		= -Tscript.ld#-Ttext $(LOADADDR)
 LOADADDR	= 0x00
 
 

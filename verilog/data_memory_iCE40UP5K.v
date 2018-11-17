@@ -17,10 +17,14 @@ module data_memory (clk, addr, write_data, memwrite, memread, sign_mask, read_da
 		end
 	end
 	
-	//reg[31:0] datamem[2047:0];
+	reg[31:0] datamem[2047:0];
 	
 	//BRAM implementation
-	/*
+	
+	initial begin
+		$readmemh("verilog/data.hex", datamem);
+	end
+	
 	always @(posedge clk) begin
 		if(memwrite==1'b1) begin
 			datamem[addr] <= write_data;
@@ -29,8 +33,9 @@ module data_memory (clk, addr, write_data, memwrite, memread, sign_mask, read_da
 			read_data <= datamem[addr];
 		end
 	end
-	*/
 	
+	
+	/*
 	//SPRAM implementation
 	
 	//internal signals
@@ -70,6 +75,7 @@ module data_memory (clk, addr, write_data, memwrite, memread, sign_mask, read_da
 	assign read_data = {read_data_MSW, read_data_LSW};
 	assign WREN = memwrite & (~memread);
 	assign CS = memwrite | memread;
+	*/
 	
 	//test led
 	assign led = led_reg[7:0];

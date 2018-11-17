@@ -5,7 +5,7 @@
 void uart_print(char* str) {
 	int i;
 	volatile unsigned int *tx_byte = (unsigned int *)0x2001;
-	for(i=0; str[i]; i++) {
+	for(i=0; /*str[i]*/i<7; i++) {
 		*tx_byte = (char)(str[i]);
 	}
 }

@@ -1,4 +1,4 @@
 [submodule "Sunflower-toolchain"]
 	path = Sunflower-toolchain
-	url = git@github.com:rjlv2/Sunflower-toolchain.git
+	url = https://github.com/rjlv2/Sunflower-toolchain
 	branch = master

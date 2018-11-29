@@ -6,7 +6,7 @@ To clone the respository, use: <br >
 
 ## Step 2 - Building the toolchain
 `cd` into the directory and then into `Sunflower-toolchain`, edit `conf/setup.conf` and edit the setup appropriately. Afterwards, `cd` into `tools/source` and run `./downloads.sh`, which will populate the folder with distributions of GCC, Newlib and Binutils.<br><br>
-After downloading, `cd` back to `Sunflower-toolchain` and run `make`, this should automatically build the toolchains and place the executable binaries in `Sunflower-toolchain/bin`.
+After downloading, `cd` back to `Sunflower-toolchain/tools` and run `make`, this should automatically build the toolchains and place the executable binaries in `Sunflower-toolchain/tools/bin`.
 
 ## Step 3 - Compiling the program
  `cd` into `program` and run `make`, this should generate an executable binary from `init.s` and `led.c`. Run `./getprog` to get the machine instructions into a file called `program.hex` as well as to automatically copy the file to `RV32I_iCE40/verilog`.<br><br>

@@ -5,8 +5,8 @@ To clone the respository, use: <br >
  `$ git clone --recursive git@github.com:physical-computation/RV32I_iCE40.git`<br >
 
 ## Step 2 - Building the toolchain
-`cd` into the directory and then into `cross-compiler-build`, edit `conf/setup.conf` and edit the setup appropriately. Afterwards, `cd` into `source` and run `./downloads.sh`, which will populate the folder with distributions of GCC, Newlib and Binutils.<br><br>
-After downloading, `cd` back to `cross-compiler-build` and run `make`, this should automatically build the toolchains and place the executable binaries in `cross-compiler-build/bin`.
+`cd` into the directory and then into `Sunflower-toolchain`, edit `conf/setup.conf` and edit the setup appropriately. Afterwards, `cd` into `tools/source` and run `./downloads.sh`, which will populate the folder with distributions of GCC, Newlib and Binutils.<br><br>
+After downloading, `cd` back to `Sunflower-toolchain/tools` and run `make`, this should automatically build the toolchains and place the executable binaries in `Sunflower-toolchain/tools/bin`.
 
 ## Step 3 - Compiling the program
  `cd` into `program` and run `make`, this should generate an executable binary from `init.s` and `led.c`. Run `./getprog` to get the machine instructions into a file called `program.hex` as well as to automatically copy the file to `RV32I_iCE40/verilog`.<br><br>

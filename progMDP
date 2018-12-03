@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 yosys -p "synth_ice40 -blif rv32i_ice40MDP.blif;" verilog/adder.v verilog/cpu.v verilog/mux2to1.v verilog/alu_control.v verilog/pipeline_registers.v verilog/alu.v verilog/data_memory_iCE40UP5K.v verilog/program_counter.v verilog/branch_decide.v verilog/forwarding_unit.v verilog/branch_predictor.v verilog/imm_gen.v verilog/control_unit.v verilog/instruction_mem.v verilog/register_file_iCE40UP5K.v verilog/CSR_iCE40UP5K.v verilog/dataMem_mask_gen.v uart/baudgen_tx.v uart/uart_tx.v top.v
 
 arachne-pnr -d 5k -P uwg30 -p rv32i_ice40MDP.pcf rv32i_ice40MDP.blif -o rv32i_ice40MDP.asc

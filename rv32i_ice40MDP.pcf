@@ -9,5 +9,6 @@ set_io led[2] F2 #25B_G3
 set_io led[1] B1 #24A
 set_io led[0] C3 #10A
 
+set_io tx A1 #36B
 #set_io start 43 #49A
 

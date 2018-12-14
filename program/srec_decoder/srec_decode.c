@@ -111,7 +111,7 @@ int main(int argc, char * argv[]){
 					instruction[5] = instr_hex[i+3];
 					instruction[6] = instr_hex[i];
 					instruction[7] = instr_hex[i+1];
-					instruction[9] = '\0';
+					instruction[8] = '\0';
 					printf("%s\n", instruction);
 					fprintf(progFile, "%s\n", instruction);
 				}

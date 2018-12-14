@@ -5,7 +5,7 @@
 void subString(char* inputLine, int start, size_t n, char* dest) {
 	char* src = &inputLine[start];
 	strncpy(dest, src, n);
-	dest[start+n] = '\0';
+	dest[n] = '\0';
 	//printf("%s\n", dest);
 }
 
@@ -15,11 +15,11 @@ int main(int argc, char * argv[]){
 	FILE* progFile = fopen("program.hex", "w");
 	FILE* dataFile = fopen("data.hex", "w");
 	char* inputLine = (char*)malloc(maxSize*sizeof(char));
-	char* recordType = (char*)malloc(2*sizeof(char));
-	char* byteCount = (char*)malloc(2*sizeof(char));
-	char* addr_str = (char*)malloc(8*sizeof(char));
+	char* recordType = (char*)malloc(3*sizeof(char));
+	char* byteCount = (char*)malloc(5*sizeof(char));
+	char* addr_str = (char*)malloc(9*sizeof(char));
 	char* instr_hex;
-	
+
 	if (fp==NULL) {
 		perror("Couldn't open file for reading.");
 		exit(1);
@@ -32,20 +32,20 @@ int main(int argc, char * argv[]){
 		perror("Couldn't open file for reading.");
 		exit(1);
 	}
-	
+
 	int i;
-	
+
 	for(i=0; i<1024; i++){
 		fprintf(dataFile, "%s", "00000000\n");
 	}
-	
+
 	while(fgets(inputLine, maxSize, fp)!=NULL){
 		//printf("%s", inputLine);
-		
+
 		size_t addr_size;
 		long byteCount_long;
 		char* end = NULL;
-		
+
 		subString(inputLine, 0, 2, recordType);
 		subString(inputLine, 2, 2, byteCount);
 		switch(recordType[1]){
@@ -55,13 +55,13 @@ int main(int argc, char * argv[]){
 			case '9':
 				addr_size = 16 >> 2; //16 bits = 4 bytes (hex digits)
 				break;
-			
+
 			case '2':
 			case '6':
 			case '8':
 				addr_size = 24 >> 2;
 				break;
-				
+
 			case '3':
 			case '7':
 				addr_size = 32 >> 2;
@@ -70,18 +70,18 @@ int main(int argc, char * argv[]){
 			case '4':
 			default:
 				break;
-		} 
+		}
 		subString(inputLine, 4, addr_size, addr_str);
 		byteCount_long = strtol(byteCount, &end, 16) - 3; //2 bytes addr and 1 byte checksum
-		
-		instr_hex = (char*)malloc((2*byteCount_long)*sizeof(char));
+
+		instr_hex = (char*)malloc((2*byteCount_long + 1)*sizeof(char));
 		subString(inputLine, 4+addr_size, 2*byteCount_long, instr_hex);
-		
+
 		int i;
 		//int j;
 		char instruction[9];
 		char stringCharData[9] = "000000000";
-		
+
 		if(recordType[1] == '1') {
 			if(addr_str[0] == '0' && addr_str[1] == '4') {
 				for(i=0; i<2*byteCount_long; i+=2){
@@ -100,7 +100,7 @@ int main(int argc, char * argv[]){
 						//char_left-=2;
 					}
 				}*/
-			} 
+			}
 			else {
 				for(i=0; i<2*byteCount_long; i+=8){ //print out every 32 bits
 					instruction[0] = instr_hex[i+6];
@@ -117,7 +117,7 @@ int main(int argc, char * argv[]){
 				}
 			}
 		}
-		
+
 		//printf("instr hex: %s\n", instr_hex);
 		//printf("\n%ld\n", byteCount_long);
 		//printf("\n%ld\n\n", addr_size);
@@ -126,4 +126,9 @@ int main(int argc, char * argv[]){
 	fclose(fp);
 	fclose(dataFile);
 	fclose(progFile);
+
+	free(inputLine);
+	free(recordType);
+	free(byteCount);
+	free(addr_str);
 }

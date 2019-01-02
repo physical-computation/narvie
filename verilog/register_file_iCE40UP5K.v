@@ -1,4 +1,19 @@
-module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, regfilePort/*, led_test*//*test led*/);
+module regfile(
+			clk,
+			write,
+			wrAddr,
+			wrData,
+			rdAddrA,
+			rdDataA,
+			rdAddrB,
+			rdDataB,
+			clk12,
+			tx,
+			do_write,
+			tx_ready,
+			led
+			/*, led_test*//*test led*/
+		);
 	input clk;
 	input write;
 	input [4:0] wrAddr;
@@ -9,15 +24,7 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, r
 	output[31:0] rdDataB;
 	//output[31:0] led_test; //test led
 
-	output wire [1023:0] regfilePort;
-
 	reg[31:0] regfile[31:0];
-
-    genvar i;
-    generate
-        for (i=0; i<32; i=i+1)
-            assign regfilePort[(32 * i + 31):(32 * i)] = regfile[i];
-    endgenerate
 
 	/*
 	//registers for forwarding
@@ -200,5 +207,96 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, r
 	assign rdDataB = {rdDataB_MSW, rdDataB_LSW};
 	assign led_test = {ledVal_MSW, ledVal_LSW};//test led
 	*/
+
+	/* UART */
+
+	// IN/OUTPUTS
+
+    input wire clk12;
+    output wire tx;
+    input wire do_write;
+    output wire tx_ready;
+    output reg led;
+
+    // CONNECTIONS
+
+    wire uart_tx_ready;
+    reg [7:0] tx_data;
+
+    assign tx_ready = (state == READY);
+
+    // STATE
+
+    localparam SENDING  = 2'b00;
+    localparam READY         = 2'b01;
+    localparam ABOUT_TO_SEND = 2'b11;
+
+    reg [1:0] state = READY;
+    reg [6:0] byte_index = 0;
+
+    // MESSAGES
+
+    localparam DO_WRITE        = 3'b000;
+    localparam SEND_STARTED    = 3'b010;
+    localparam TX_IS_READY     = 3'b001;
+    localparam RESET           = 3'b111;
+
+    // UPDATE
+
+    task update;
+        input reg [2:0] msg;
+    begin
+        case(msg)
+            DO_WRITE: begin
+                if (state == READY) begin
+		            led <= !led;
+                    state <= ABOUT_TO_SEND;
+                    byte_index <= 0;
+                    tx_data <= regfile[0][7:0];
+                end
+            end
+            SEND_STARTED: begin
+                state <= SENDING;
+            end
+            TX_IS_READY: begin
+                if (state == SENDING) begin
+                    if (byte_index == 7'h7F) begin
+                        state <= READY;
+                        byte_index <= 0;
+                    end else begin
+                        state <= ABOUT_TO_SEND;
+                        byte_index <= byte_index + 1;
+                        tx_data <= regfile[byte_index >> 2][(8 * (byte_index & 2'b11)) +: 8];
+                    end
+                end
+            end
+            default: begin // or RESET
+                state <= READY;
+                byte_index <= 0;
+            end
+        endcase
+    end
+    endtask
+
+    always @(posedge clk12) begin
+        if (do_write == 1)
+            update(DO_WRITE);
+
+        if (state == ABOUT_TO_SEND && uart_tx_ready == 0)
+            update(SEND_STARTED);
+
+        if (uart_tx_ready == 1)
+            update(TX_IS_READY);
+    end
+
+	uart_tx #(.BAUDRATE(`B115200)) TX0 (
+        .clk(clk12),
+        .rstn(1),
+        .data(tx_data),
+        .start(state == ABOUT_TO_SEND),
+        .tx(tx),
+        .ready(uart_tx_ready)
+    );
+
 
 endmodule

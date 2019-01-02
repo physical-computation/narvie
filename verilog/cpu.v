@@ -10,7 +10,11 @@ module cpu(
 			data_mem_memwrite,
 			data_mem_memread,
 			data_mem_sign_mask,
-			regfile,
+			clk12,
+			tx,
+			do_write,
+			tx_ready,
+			led
 		);
 
 	//Input Clock
@@ -28,8 +32,12 @@ module cpu(
 	output data_mem_memread;
 	output[3:0] data_mem_sign_mask;
 
-	//Register output for logging
-	output [1023:0] regfile;
+	//Logging resister values over UART
+	input clk12;
+	output tx;
+	input do_write;
+	output tx_ready;
+	output led;
 
 	//Program Counter
 	wire[31:0] pc_mux0;
@@ -185,7 +193,11 @@ module cpu(
 			.rdDataA(regA_out),
 			.rdAddrB(inst_mux_out[24:20]), //if_id_out[56:52] //inst_mux_out[24:20]
 			.rdDataB(regB_out),
-			.regfilePort(regfile)
+			.clk12(clk12),
+			.tx(tx),
+			.do_write(do_write),
+			.tx_ready(tx_ready),
+			.led(led)
 		);
 
 	imm_gen immediate_generator(

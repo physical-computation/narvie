@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+set -x
+
+mkdir -p verilator_sim
+
+iverilog -o verilator_sim/main -Iuart top_uart_testbed.v uart/baudgen_rx.v uart/baudgen_tx.v uart/tx_regfile.v uart/rx_instruction.v uart/uart_rx.v uart/uart_tx.v
+
+vvp verilator_sim/main

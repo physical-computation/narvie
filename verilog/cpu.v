@@ -10,7 +10,7 @@ module cpu(
 			data_mem_memwrite,
 			data_mem_memread,
 			data_mem_sign_mask,
-			regfile,
+			regfile
 		);
 
 	//Input Clock

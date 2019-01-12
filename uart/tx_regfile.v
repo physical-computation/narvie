@@ -5,7 +5,7 @@ module tx_regfile(
             do_write,
             reg_file,
             ready,
-            led,
+            led
         );
 
     // IN/OUTPUTS

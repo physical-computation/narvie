@@ -4,16 +4,17 @@ const util = require('util');
 const childProcess = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const tempy = require('tempy');
+const assert = require('assert');
 const Debug = require('debug');
 const chalk = require('chalk');
-const SerialPort = require('serialport');
 const Table = require('@harrysarson/cli-table');
 
-const { portWrite, portReadRegisters } = require('./eval-instruction.mock');
+const { portWrite, portReadRegisters } = require('./eval-instruction');
+const SerialPort = require('./serialport.mock');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
+const mkdir = util.promisify(fs.mkdir);
 
 const debug = new Debug('process-repl');
 const exec = util.promisify(childProcess.exec);
@@ -57,14 +58,20 @@ const question = (rl, prompt) => new Promise(resolve => {
 	rl.question(prompt, resolve);
 });
 
-const asPath = './compiler-files/a.S'
-const elfPath = './compiler-files/a.elf'
-const machPath = './compiler-files/machine-code'
+const logDir = path.join(__dirname, 'logs');
+const serialportLogPath = path.join(__dirname, 'serialport');
+
+// These must match those in the Makefile.
+const compilerFileDir = path.join(__dirname, 'compiler-files');
+const asPath = path.join(compilerFileDir, 'a.S');
+const machPath = path.join(compilerFileDir, 'machine-code');
+const disassemblyPath = path.join(compilerFileDir, 'd.S');
 
 const config = Object.freeze({
 	prompt: '>',
-	overwrite: false,
+	overwrite: true,
 	makeCommand: 'make', // do not allow user to configure at runtime!
+	lineWidth: 80,
 });
 
 const resetCursor = config.overwrite
@@ -79,18 +86,15 @@ _start:
 `;
 
 const highlightedLine = (tty, color, text) => {
-	tty.write(color(' '.repeat(tty.columns)));
+	tty.write(color(' '.repeat(Math.min(tty.columns, config.lineWidth))));
 	resetCursor(tty);
 	tty.write(color(text));
 };
 
-const readEvalPrint = async ({ rl, serialport }) => {
-	const input = await question(rl, `${config.prompt} `);
-	const instruction = input.trim();
-
+const readEvalPrint = async ({ instruction, serialport }) => {
 	const messages = {
-		compiling: `Compiling ${chalk.bgWhite.black(` ${instruction} `)} to riscv machine code:`,
-		writing: `Writing ${chalk.bgWhite.black(` ${instruction} `)} to to riscv processor:`,
+		compiling: inst => `Compiling ${chalk.bgWhite.black(` ${inst} `)} to riscv machine code:`,
+		writing: inst => `Writing ${chalk.bgWhite.black(` ${inst} `)} to to riscv processor:`,
 		reading: `Reading updated registers from riscv processor:`,
 	};
 
@@ -110,7 +114,7 @@ const readEvalPrint = async ({ rl, serialport }) => {
 		process.stdout.write('\n');
 	};
 
-	if (input === '') {
+	if (instruction === '') {
 		return;
 	}
 
@@ -125,11 +129,9 @@ const readEvalPrint = async ({ rl, serialport }) => {
 	highlightedLine(
 		process.stdout,
 		chalk.bgYellow.black,
-		messages.compiling,
+		messages.compiling(instruction),
 	);
 	resetCursor(process.stdout);
-
-	// Await (new Promise(r => setTimeout(r, 1000)));
 
 	try {
 		const { stdout, stderr } = await exec(
@@ -141,11 +143,15 @@ const readEvalPrint = async ({ rl, serialport }) => {
 
 		debug(`stdout:\n${stdout}`);
 		debug(`stderr:\n${stderr}`);
+
+		if (stderr !== '') {
+			process.error.write(`\n  Possible error in assembler:\n  ${stderr.replace(/\n/g, '\n  ')}\n`);
+		}
 	} catch (error) {
 		highlightedLine(
 			process.stdout,
 			chalk.bgRed.white,
-			`${messages.compiling} Error`,
+			`${messages.compiling(instruction)} Error`,
 		);
 		let errorString = `${error}`;
 		if (error.stderr !== undefined) {
@@ -165,102 +171,143 @@ const readEvalPrint = async ({ rl, serialport }) => {
 	highlightedLine(
 		process.stdout,
 		chalk.bgGreen.black,
-		`${messages.compiling} Success`,
+		`${messages.compiling(instruction)} Success`,
 	);
 	process.stdout.write('\n');
 
-	let machineCode = Buffer.from([]);
+	let machineCode = [];
 	try {
-		machineCode = await readFile(machPath);
+		const binary = await readFile(machPath);
+		let i = 0;
+		while (i * 4 < binary.length) {
+			machineCode.push(binary.slice(i * 4, (i + 1) * 4));
+			i++;
+		}
 	} catch (error) {
 		console.error('Failed to read machine code from temporary file:');
 		throw error;
 	}
 
-	const binaryInstruction = [...machineCode]
-		.reverse()
-		.map(x => x.toString(2).padStart(8, '0'))
-		.join(' ');
+	let disassembly = [];
+	try {
+		disassembly = await readFile(disassemblyPath, 'utf8');
+		disassembly = disassembly
+			.split('\n')
+			.slice(0, -1)
+			.map(text => text.replace('\t', ' '));
+	} catch (error) {
+		console.error('Failed to read disassembly temporary file:');
+		throw error;
+	}
+	assert.strictEqual(disassembly.length, machineCode.length);
+	assert.strictEqual(machineCode[machineCode.length - 1].length, 4);
+
+	const binaryInstructions = machineCode.map(inst =>
+		[...inst]
+			.reverse()
+			.map(x => x.toString(2).padStart(8, '0'))
+			.join(' ')
+	);
 
 	const inputTable = new Table({
 		head: ['Instruction', 'Binary'],
-		colors: true
+		style: {
+			head: ['bgWhite', 'black'],
+		}
 	});
 
-	inputTable.push([instruction, binaryInstruction]);
+	for (let i = 0; i < disassembly.length; ++i) {
+		inputTable.push([disassembly[i], binaryInstructions[i]]);
+	}
 
 	process.stdout.write(`${inputTable}\n`);
-
-	highlightedLine(
-		process.stdout,
-		chalk.bgYellow.black,
-		messages.writing,
-	);
-	resetCursor(process.stdout);
-
-	try {
-		console.log("start write");
-		portWrite(serialport, machineCode);
-		console.log("end write");
-	} catch (error) {
-		logProcessorError(messages.writing, error);
-		return;
-	}
-
-	highlightedLine(
-		process.stdout,
-		chalk.bgGreen.black,
-		`${messages.writing} Success`,
-	);
-	process.stdout.write('\n');
-	highlightedLine(
-		process.stdout,
-		chalk.bgYellow.black,
-		messages.reading,
-	);
-	resetCursor(process.stdout);
-
 	let regfile;
-	try {
-		regfile = await portReadRegisters(serialport, { regCount: 32 });
-	} catch (error) {
-		logProcessorError(messages.reading, error);
-		return;
-	}
-	highlightedLine(
-		process.stdout,
-		chalk.bgGreen.black,
-		`${messages.reading} Success`,
-	);
-	process.stdout.write('\n');
 
-	const headers = ['Name', 'ABI', 'Value'];
-	const registerTable = new Table({
-		head: [...headers, '    ', ...headers, '    ', ...headers, '    ', ...headers],
-		colors: false
-	});
-	for (let i = 0; i < 8; i++) {
-		registerTable.push([
+	for (let i = 0; i < machineCode.length; ++i) {
+		if (i > 0) {
+			// A hack around some race conditions.
+			// eslint-disable-next-line no-await-in-loop
+			await new Promise(resolve => setTimeout(resolve, 1000));
+		}
+
+		highlightedLine(
+			process.stdout,
+			chalk.bgYellow.black,
+			messages.writing,
+		);
+		resetCursor(process.stdout);
+
+		try {
+			portWrite(serialport, machineCode[i]);
+		} catch (error) {
+			logProcessorError(messages.writing(disassembly[i]), error);
+			return;
+		}
+
+		highlightedLine(
+			process.stdout,
+			chalk.bgGreen.black,
+			`${messages.writing(disassembly[i])} Success`,
+		);
+		process.stdout.write('\n');
+		highlightedLine(
+			process.stdout,
+			chalk.bgYellow.black,
+			messages.reading,
+		);
+		resetCursor(process.stdout);
+
+		try {
+			regfile = await portReadRegisters(serialport, { regCount: 32 });
+		} catch (error) {
+			logProcessorError(messages.reading, error);
+			return;
+		}
+		highlightedLine(
+			process.stdout,
+			chalk.bgGreen.black,
+			`${messages.reading} Success`,
+		);
+		process.stdout.write('\n');
+	}
+
+
+	const options = {
+		head: ['Name', 'ABI', 'Value'],
+		style: {
+			head: ['bgWhite', 'black'],
+		}
+	};
+
+	const registerTableLeft = new Table(options);
+	const registerTableRight = new Table(options);
+	const getRegHex = index =>
+		`0x${regfile[index].toString(16).padStart(8, '0').toUpperCase()}`;
+
+	for (let i = 0; i < 16; i++) {
+		registerTableLeft.push([
 			`x${i}`,
 			getAbi(i),
-			regfile[i].toString(16).padStart(8, '0').toUpperCase(),
-			'',
-			`x${8 + i}`,
-			getAbi(8 + i),
-			regfile[8 + i].toString(16).padStart(8, '0').toUpperCase(),
-			'',
+			getRegHex(i),
+		]);
+		registerTableRight.push([
 			`x${16 + i}`,
 			getAbi(16 + i),
-			regfile[16 + i].toString(16).padStart(8, '0').toUpperCase(),
-			'',
-			`x${24 + i}`,
-			getAbi(24 + i),
-			regfile[24 + i].toString(16).padStart(8, '0').toUpperCase()
+			getRegHex(16 + i),
 		]);
 	}
+	const linesLeft = `${registerTableLeft}`.split('\n');
+	const linesRight = `${registerTableRight}`.split('\n');
+	const lines = [];
+	assert.strictEqual(linesLeft.length, linesRight.length);
+	for (let i = 0; i < linesLeft.length; i++) {
+		lines.push(`${linesLeft[i]}    ${linesRight[i]}`);
+	}
+
 	process.stdout.write('Updated registers:\n');
-	process.stdout.write(`${registerTable}\n`);
-};
+	process.stdout.write(`${lines.join('\n')}\n`);
+}
+
 
 (async () => {
 	const serialPortAddress = 'COM10';
@@ -273,35 +320,44 @@ const readEvalPrint = async ({ rl, serialport }) => {
 	);
 	resetCursor(process.stdout);
 
-	const serialport = await new Promise(resolve => {
-		const res = new SerialPort(
-			'COM10',
-			{
-				baudRate: 112500,
-				highWaterMark: 0,
-			},
-			error => {
-				if (error !== null) {
-					highlightedLine(
-						process.stdout,
-						chalk.bgRed.white,
-						`${connectingMessage} Error`,
-					);
+	let serialport;
 
-					process.stdout.write(`\n  ${`${`${error}`.trim()}`.replace(/\n/g, '\n  ')}\n`);
+	try {
+		serialport = await SerialPort.connect();
+	} catch (error) {
 
-					highlightedLine(
-						process.stdout,
-						chalk.bgRed.white,
-						'Check the riscv processor is connected and run the program again.',
-					);
-					process.stdout.write('\n');
-					// Process.exit(1);
-				}
-				resolve(res);
-			}
+		highlightedLine(
+			process.stdout,
+			chalk.bgRed.white,
+			`${connectingMessage} Error`,
 		);
+
+		process.stdout.write(`\n  ${`${`${error}`.trim()}`.replace(/\n/g, '\n  ')}\n`);
+
+		highlightedLine(
+			process.stdout,
+			chalk.bgRed.white,
+			'Check the riscv processor is connected and run the program again.',
+		);
+		process.stdout.write('\n');
+		// eslint-disable-next-line unicorn/no-process-exit
+		process.exit(1);
+	}
+
+	try {
+		await mkdir(logDir);
+	} catch (error) { }
+	await writeFile(serialportLogPath, '');
+	try {
+		await mkdir(compilerFileDir);
+	} catch (error) { }
+
+	serialport.on('data', data => {
+		writeFile(serialportLogPath, data, {
+			flag: 'a+',
+		});
 	});
+	serialport.pause();
 
 	highlightedLine(
 		process.stdout,
@@ -316,15 +372,26 @@ const readEvalPrint = async ({ rl, serialport }) => {
 		path: path.join(__dirname, 'readline-history.txt')
 	});
 
-	for (; ;) {
-		try {
+	try {
+		await readEvalPrint({
+			instruction: 'nop',
+			serialport: serialport,
+		});
+		for (; ;) {
 			// eslint-disable-next-line no-await-in-loop
-			await readEvalPrint({ rl, serialport: serialport });
-		} catch (error) {
-			console.error(error);
-			rl.close();
-			// eslint-disable-next-line unicorn/no-process-exit
-			process.exit(1);
+			await readEvalPrint({
+				instruction: await (async () => {
+					const text = await question(rl, `${config.prompt} `);
+					return text.trim();
+				})(),
+				serialport: serialport,
+			});
 		}
+	} catch (error) {
+		console.error(error);
+		rl.close();
+		// eslint-disable-next-line unicorn/no-process-exit
+		process.exit(1);
 	}
+
 })();

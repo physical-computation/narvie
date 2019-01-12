@@ -48,12 +48,12 @@ const portReadRegisters = (port, { regCount }) => new Promise((resolve, reject) 
 		reject(new Error('Stream ended before all registers could be read'));
 	};
 
-	port.drain(() => {
-		port.on('data', dataCallback);
-		port.on('error', errorCallback);
-		port.on('end', endCallback);
-		port.resume();
-	});
+	//port.drain(() => {
+	port.on('data', dataCallback);
+	port.on('error', errorCallback);
+	port.on('end', endCallback);
+	port.resume();
+	//});
 
 	function cleanUp() {
 		port.removeListener('data', dataCallback);

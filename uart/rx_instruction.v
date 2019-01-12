@@ -37,10 +37,11 @@ module rx_instruction(
             instruction[(8 * byte_index) +: 8] <= rx_data;
             byte_index <= byte_index + 1;
         end
-        if (rx_rcv == 1 && byte_index == 3)
+        if (rx_rcv == 1 && byte_index == 3) begin
             instruction_rcv <= 1;
-        else
+        end else begin
             instruction_rcv <= 0;
+        end
     end
 
 	uart_rx #(.BAUDRATE(`B115200)) RX0 (

@@ -53,7 +53,7 @@ module regfile(clk, write, wrAddr, wrData, rdAddrA, rdDataA, rdAddrB, rdDataB, r
 	*/
 
 	initial begin
-		regfile[0] <= 32'b0;
+		regfile[0] = 32'b0;
 	end
 
 	/*generate

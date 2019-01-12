@@ -3,8 +3,7 @@ module tx_regfile(
             rstn,
             tx,
             do_write,
-            register,
-            reg_address,
+            reg_file,
             ready,
             led,
         );
@@ -15,8 +14,7 @@ module tx_regfile(
     input wire rstn;
     output wire tx;
     input wire do_write;
-    input wire [31:0] register;
-    output reg [4:0] reg_address = 0;
+    input wire [1023:0] reg_file;
     output wire ready;
     output reg led;
 
@@ -54,7 +52,7 @@ module tx_regfile(
 		            led <= !led;
                     state <= ABOUT_TO_SEND;
                     byte_index <= 0;
-                    tx_data <= register[7:0];
+                    tx_data <= reg_file[7:0];
                 end
             end
             SEND_STARTED: begin
@@ -65,21 +63,16 @@ module tx_regfile(
                     if (byte_index == 7'h7F) begin
                         state <= READY;
                         byte_index <= 0;
-                        reg_address <= 0;
                     end else begin
-                        if (byte_index & 2'b11 === 11)
-                            reg_address <= reg_address + 1;
-
                         state <= ABOUT_TO_SEND;
                         byte_index <= byte_index + 1;
-                        tx_data <= register[(8 * (byte_index & 2'b11)) +: 8];
+                        tx_data <= reg_file[(8 * (byte_index + 1)) +: 8];
                     end
                 end
             end
             default: begin // or RESET
                 state <= READY;
                 byte_index <= 0;
-                reg_address <= 0;
             end
         endcase
     end

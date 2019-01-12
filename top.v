@@ -40,20 +40,21 @@ module top(led, tx, rx);
 
 	//Interface
 	wire[31:0] inst_in;
-	reg[31:0] inst_out;
-	// wire[31:0] data_out;
-	// wire[31:0] data_addr;
-	// wire[31:0] data_WrData;
-	// wire data_memwrite;
-	// wire data_memread;
-	// wire[3:0] data_sign_mask;
+	wire[31:0] inst_out;
+	wire[31:0] data_out;
+	wire[31:0] data_addr;
+	wire[31:0] data_WrData;
+	wire data_memwrite;
+	wire data_memread;
+	wire[3:0] data_sign_mask;
 	wire[1023:0] regfile;
 	reg send_regfile = 0;
 
 	wire [31:0] instruction_buffer;
-	reg [7:0] clocks_counter = 0;
+	reg [31:0] clocks_counter = 6;
 	reg do_execute = 0;
 	wire instruction_rcv;
+	reg [5:0] reg_counter = 32;
 	reg rstn = 0;
 
     // reg [31:0] mem [0:31];
@@ -71,29 +72,37 @@ module top(led, tx, rx);
 			.clk(clk_proc),
 			.inst_mem_in(inst_in),
 			.inst_mem_out(inst_out),
-			.data_mem_out(0),
-			.data_mem_addr(),
-			.data_mem_WrData(),
-			.data_mem_memwrite(),
-			.data_mem_memread(),
-			.data_mem_sign_mask(),
-			.clk12(clk12),
-			.tx(tx),
-			.do_write(send_regfile),
-			.tx_ready(tx_ready),
-			.led(led[1])
+			.data_mem_out(data_out),
+			.data_mem_addr(data_addr),
+			.data_mem_WrData(data_WrData),
+			.data_mem_memwrite(data_memwrite),
+			.data_mem_memread(data_memread),
+			.data_mem_sign_mask(data_sign_mask),
+			.regfile(regfile)
 		);
 
-	// data_memory data_mem(
-	// 		.clk(clk_proc),
-	// 		.addr(data_addr),
-	// 		.write_data(data_WrData),
-	// 		.memwrite(data_memwrite),
-	// 		.memread(data_memread),
-	// 		.read_data(data_out),
-	// 		.sign_mask(data_sign_mask),
-	// 		.led()
-	// 	);
+	assign inst_out = (bytes_loaded == 4) ? instruction_buffer : noop;
+
+	data_memory data_mem(
+			.clk(clk_proc),
+			.addr(data_addr),
+			.write_data(data_WrData),
+			.memwrite(data_memwrite),
+			.memread(data_memread),
+			.read_data(data_out),
+			.sign_mask(data_sign_mask),
+			.led()
+		);
+
+	tx_regfile TX0 (
+		.clk12(clk12),
+		.rstn(rstn),
+		.tx(tx),
+        .reg_file(regfile),
+        .do_write(send_regfile),
+        .ready(tx_ready),
+		.led(led[1])
+	);
 
 	rx_instruction RX0 (
 		.clk12(clk12),
@@ -111,18 +120,13 @@ module top(led, tx, rx);
 			led[2] <= !led[2];
 			clocks_counter <= 0;
 			do_execute <= 1;
-			inst_out <= instruction_buffer;
-		end else if (clocks_counter < 2) begin
-			inst_out <= instruction_buffer;
-		end else begin
-			inst_out <= noop;
 		end
 		if (do_execute == 1) begin
 			clocks_counter <= clocks_counter + 1;
-			if (clocks_counter == 10) begin
-				do_execute <= 0;
-				send_regfile <= 1;
-			end
+		end
+		if (clocks_counter == 10 && do_execute == 1) begin
+			do_execute <= 0;
+			send_regfile <= 1;
 		end
 		if (send_regfile == 1) begin
 			send_regfile <= 0;

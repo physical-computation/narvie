@@ -92,7 +92,7 @@ module main(clk12, led, tx, rx);
 	assign clk_proc = do_execute ? clk6 : 1;
 	assign led[7:2] = 0;
 	assign led[0] = 0;
-	assign inst_out = (do_execute == 1 && clocks_counter < 3)
+	assign inst_out = (do_execute == 1 && clocks_counter < 2)
 		? instruction_buffer
 		: noop;
 

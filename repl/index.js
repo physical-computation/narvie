@@ -59,7 +59,7 @@ const question = (rl, prompt) => new Promise(resolve => {
 });
 
 const logDir = path.join(__dirname, 'logs');
-const serialportLogPath = path.join(__dirname, 'serialport');
+const serialportLogPath = path.join(logDir, 'serialport');
 
 // These must match those in the Makefile.
 const compilerFileDir = path.join(__dirname, 'compiler-files');
@@ -224,12 +224,6 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	let regfile;
 
 	for (let i = 0; i < machineCode.length; ++i) {
-		if (i > 0) {
-			// A hack around some race conditions.
-			// eslint-disable-next-line no-await-in-loop
-			await new Promise(resolve => setTimeout(resolve, 1000));
-		}
-
 		highlightedLine(
 			process.stdout,
 			chalk.bgYellow.black,

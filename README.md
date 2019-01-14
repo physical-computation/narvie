@@ -24,7 +24,7 @@ Harry Sarson (hds28), Pembroke College.
 
 ![RISCV REPL demo](/images/demo.gif?raw=true)
 
-## LICENSE
+## License
 
 As this project borrows GPL licensed code from other sources it too is licensed under the GPL.
 

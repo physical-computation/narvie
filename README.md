@@ -18,4 +18,4 @@ Only UNIX systems are supported.
 
 ## Demo
 
-![RISCV REPL demo](/img/demo.gif?raw=true)
+![RISCV REPL demo](/images/demo.gif?raw=true)

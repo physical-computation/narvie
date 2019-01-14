@@ -7,18 +7,13 @@ module main(clk12, led, tx, rx);
 	output tx;
 	input rx;
 
-	reg clk6 = 0;
+	reg clk_proc = 1;
 
 	reg[7:0] tx_data;
 	reg tx_start;
 	wire tx_ready;
-	wire clk_proc;
 
 	localparam noop = 32'h13000000;
-
-	always @(posedge clk12) begin
-		clk6 <= ~clk6;
-	end
 
 	//Interface
 	wire[31:0] inst_in;
@@ -89,7 +84,7 @@ module main(clk12, led, tx, rx);
 		.instruction_rcv(instruction_rcv)
 	);
 
-	assign clk_proc = do_execute ? clk6 : 1;
+	// assign clk_proc = do_execute ? clk6 : 1;
 	assign led[7:2] = 0;
 	assign led[0] = 0;
 	assign inst_out = (do_execute == 1 && clocks_counter < 2)
@@ -103,9 +98,11 @@ module main(clk12, led, tx, rx);
             // $display("instruction: %h", instruction_buffer);
 			clocks_counter <= 0;
 			do_execute <= 1;
+			clk_proc <= 0;
 		end
 		if (do_execute == 1) begin
 			clocks_counter <= clocks_counter + 1;
+			clk_proc <= !clk_proc;
 		end
 		if (clocks_counter == 10 && do_execute == 1) begin
 			do_execute <= 0;

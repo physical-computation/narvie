@@ -1,0 +1,3 @@
+[submodule "Sunflower-toolchain"]
+	path = Sunflower-toolchain
+	url = https://github.com/phillipstanleymarbell/Sunflower-toolchain/

@@ -25,6 +25,11 @@ Harry Sarson (hds28), Pembroke College.
 * Type instructions into the prompt. Examples are `nop`, `li t0, 1678`, or `addi t0, t0, 1`.
 * When done, use `ctrl-c` to quit the repl, `fg` to bring the simulation to the forground and `ctrl-c` to quit the simulation.
 
+## Documentation
+
+* [REPL documentation](documentation/repl.md)
+* [Processor documentation](documentation/processor.md)
+
 ## Demo
 
 ![RISCV REPL demo](/images/demo.gif?raw=true)

@@ -1,4 +1,6 @@
 'use strict';
+const config = require('./config');
+
 const readline = require('readline');
 const util = require('util');
 const childProcess = require('child_process');
@@ -10,7 +12,8 @@ const chalk = require('chalk');
 const Table = require('@harrysarson/cli-table');
 
 const { portWrite, portReadRegisters } = require('./eval-instruction');
-const SerialPort = require('./serialport.mock');
+
+const SerialPort = equire('./serialport');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
@@ -56,22 +59,6 @@ const getAbi = i => {
 
 const question = (rl, prompt) => new Promise(resolve => {
 	rl.question(prompt, resolve);
-});
-
-const logDir = path.join(__dirname, 'logs');
-const serialportLogPath = path.join(logDir, 'serialport');
-
-// These must match those in the Makefile.
-const compilerFileDir = path.join(__dirname, 'compiler-files');
-const asPath = path.join(compilerFileDir, 'a.S');
-const machPath = path.join(compilerFileDir, 'machine-code');
-const disassemblyPath = path.join(compilerFileDir, 'd.S');
-
-const config = Object.freeze({
-	prompt: '>',
-	overwrite: true,
-	makeCommand: 'make', // do not allow user to configure at runtime!
-	lineWidth: 80,
 });
 
 const resetCursor = config.overwrite
@@ -120,7 +107,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 
 	// Create assembly file:
 	try {
-		await writeFile(asPath, createAssembly(instruction));
+		await writeFile(config.asPath, createAssembly(instruction));
 	} catch (error) {
 		console.error('Failed to write assembly to temporary file: ');
 		throw error;
@@ -177,7 +164,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 
 	let machineCode = [];
 	try {
-		const binary = await readFile(machPath);
+		const binary = await readFile(config.machPath);
 		let i = 0;
 		while (i * 4 < binary.length) {
 			machineCode.push(binary.slice(i * 4, (i + 1) * 4));
@@ -190,7 +177,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 
 	let disassembly = [];
 	try {
-		disassembly = await readFile(disassemblyPath, 'utf8');
+		disassembly = await readFile(config.disassemblyPath, 'utf8');
 		disassembly = disassembly
 			.split('\n')
 			.slice(0, -1)
@@ -338,15 +325,15 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	}
 
 	try {
-		await mkdir(logDir);
+		await mkdir(path.dirname(config.serialportLogPath));
 	} catch (error) { }
-	await writeFile(serialportLogPath, '');
+	await writeFile(config.serialportLogPath, '');
 	try {
-		await mkdir(compilerFileDir);
+		await mkdir(config.compilerFileDir);
 	} catch (error) { }
 
 	serialport.on('data', data => {
-		writeFile(serialportLogPath, data, {
+		writeFile(config.serialportLogPath, data, {
 			flag: 'a+',
 		});
 	});
@@ -361,8 +348,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 
 	const rl = readline.createInterface({
 		input: process.stdin,
-		output: process.stdout,
-		path: path.join(__dirname, 'readline-history.txt')
+		output: process.stdout
 	});
 
 	try {

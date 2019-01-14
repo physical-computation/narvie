@@ -1,8 +1,0 @@
-#!/bin/sh
-
-#./objdump | grep ".*:" | sed "s/.*:\t//g" | grep ".*       " | sed "s/ .*//g" > program.hex
-
-srec_decoder/srec_decode led.sr
-
-cp program.hex ../verilog/program.hex
-cp data.hex ../verilog/data.hex

@@ -1,6 +1,0 @@
-*.o
-*.sr
-*.hex
-
-led
-led.map

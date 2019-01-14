@@ -3,7 +3,7 @@ const net = require('net');
 const connect = () => new Promise((resolve, reject) => {
     const client = net.createConnection(
         {
-            port: 8000,
+            port: 8001,
             host: 'localhost',
             writableHighWaterMark: 0,
         },

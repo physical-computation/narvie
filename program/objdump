@@ -1,3 +1,0 @@
-#!/bin/sh
-
-../Sunflower-toolchain/tools/bin/riscv32-elf-objdump -S led

@@ -298,7 +298,6 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		lines.push(`${linesLeft[i]}    ${linesRight[i]}`);
 	}
 
-	process.stdout.write('Updated registers:\n');
 	process.stdout.write(`${lines.join('\n')}\n`);
 }
 
@@ -367,10 +366,10 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	});
 
 	try {
-		await readEvalPrint({
-			instruction: 'nop',
-			serialport: serialport,
-		});
+		// await readEvalPrint({
+		// 	instruction: 'nop',
+		// 	serialport: serialport,
+		// });
 		for (; ;) {
 			// eslint-disable-next-line no-await-in-loop
 			await readEvalPrint({

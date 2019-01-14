@@ -6,7 +6,7 @@
 #include <memory>
 
 TESTBENCH::TESTBENCH()
-	: m_uart(8000), m_core(), m_tickcount(0)
+	: m_uart(8001), m_core(), m_tickcount(0)
 {
 	// attempts baud rate of 115200
 	// guessed from source code of uartsim.cpp

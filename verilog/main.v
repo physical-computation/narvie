@@ -100,7 +100,7 @@ module main(clk12, led, tx, rx);
 		rstn <= 1;
 		if (instruction_rcv == 1 && do_execute == 0) begin
 			// led[2] <= !led[2];
-            $display("instruction: %h", instruction_buffer);
+            // $display("instruction: %h", instruction_buffer);
 			clocks_counter <= 0;
 			do_execute <= 1;
 		end

@@ -288,8 +288,10 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 };
 
 (async () => {
-	const serialPortAddress = 'COM10';
-	const connectingMessage = `Connecting to processor at ${chalk.bgWhite.black(` ${serialPortAddress} `)}:`;
+	const portAddress = config.mockSerialPort ?
+		`TCP port ${config.portForMockedSerialPort}` :
+		`serial port ${config.serialPortAddress}`;
+	const connectingMessage = `Connecting to processor at ${chalk.bgWhite.black(` ${portAddress} `)}:`;
 
 	highlightedLine(
 		process.stdout,

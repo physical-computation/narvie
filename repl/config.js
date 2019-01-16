@@ -1,3 +1,7 @@
+const path = require('path');
+
+const compilerFileDir = path.join(__dirname, 'compiler-files');
+
 module.exports = Object.freeze({
     // Do not write or read from the serial port. Instead return a
     // random string of bytes for the register file.
@@ -31,13 +35,13 @@ module.exports = Object.freeze({
     lineWidth: 80,
 
     // Set the file used to log bytes received by the serial port
-    serialportLogPath = path.join(__dirname, 'logs', 'serialport'),
+    serialportLogPath: path.join(__dirname, 'logs', 'serialport'),
 
     // Set the files used to generate binary instructions, these
     // paths must match those set in `./Makefile`. See `./Makefile`
     // for explanations
-    compilerFileDir = path.join(__dirname, 'compiler-files'),
-    asPath = path.join(compilerFileDir, 'a.S'),
-    machPath = path.join(compilerFileDir, 'machine-code'),
-    disassemblyPath = path.join(compilerFileDir, 'd.S'),
+    compilerFileDir,
+    asPath: path.join(compilerFileDir, 'a.S'),
+    machPath: path.join(compilerFileDir, 'machine-code'),
+    disassemblyPath: path.join(compilerFileDir, 'd.S'),
 });

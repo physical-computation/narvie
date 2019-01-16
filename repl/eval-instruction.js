@@ -1,8 +1,8 @@
-const config = require('./config');
 const assert = require('assert');
 const util = require('util');
-const Debug = require('debug');
 const crypto = require('crypto');
+const Debug = require('debug');
+const config = require('./config');
 
 const debug = new Debug('process-repl:eval-instruction');
 
@@ -30,8 +30,8 @@ if (config.mockInstructionEvaluation) {
 } else {
 	const portWrite = (port, buffer) => {
 		assert(Buffer.isBuffer(buffer));
-		// make sure we do not buffer the write
-		assert(port.writableHighWaterMark == 0);
+		// Make sure we do not buffer the write
+		assert(port.writableHighWaterMark === 0);
 		port.write(buffer);
 	};
 
@@ -72,20 +72,20 @@ if (config.mockInstructionEvaluation) {
 			reject(new Error('Stream ended before all registers could be read'));
 		};
 
-		//port.drain(() => {
+		// Port.drain(() => {
 		port.on('data', dataCallback);
 		port.on('error', errorCallback);
 		port.on('end', endCallback);
 		port.resume();
-		//});
+		// });
 
 		function cleanUp() {
 			port.removeListener('data', dataCallback);
 			port.removeListener('error', errorCallback);
 			port.removeListener('end', endCallback);
-		};
+		}
 
-		// setTimeout(function () {
+		// SetTimeout(function () {
 		// 	cleanUp();
 		// 	reject(new Error('Read timed out!'));
 		// }, 10000);

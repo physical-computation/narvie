@@ -1,5 +1,4 @@
 'use strict';
-const config = require('./config');
 
 const readline = require('readline');
 const util = require('util');
@@ -10,10 +9,11 @@ const assert = require('assert');
 const Debug = require('debug');
 const chalk = require('chalk');
 const Table = require('@harrysarson/cli-table');
+const config = require('./config');
 
 const { portWrite, portReadRegisters } = require('./eval-instruction');
 
-const SerialPort = equire('./serialport');
+const SerialPort = require('./serialport');
 
 const writeFile = util.promisify(fs.writeFile);
 const readFile = util.promisify(fs.readFile);
@@ -21,7 +21,6 @@ const mkdir = util.promisify(fs.mkdir);
 
 const debug = new Debug('process-repl');
 const exec = util.promisify(childProcess.exec);
-
 
 const getAbi = i => {
 	if (i === 0) {
@@ -61,9 +60,9 @@ const question = (rl, prompt) => new Promise(resolve => {
 	rl.question(prompt, resolve);
 });
 
-const resetCursor = config.overwrite
-	? (tty => tty.cursorTo(0))
-	: (tty => tty.write('\n'));
+const resetCursor = config.overwrite ?
+	(tty => tty.cursorTo(0)) :
+	(tty => tty.write('\n'));
 
 const createAssembly = instruction => `
 .globl _start
@@ -82,7 +81,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	const messages = {
 		compiling: inst => `Compiling ${chalk.bgWhite.black(` ${inst} `)} to riscv machine code:`,
 		writing: inst => `Writing ${chalk.bgWhite.black(` ${inst} `)} to to riscv processor:`,
-		reading: `Reading updated registers from riscv processor:`,
+		reading: 'Reading updated registers from riscv processor:'
 	};
 
 	const logProcessorError = (message, error) => {
@@ -124,7 +123,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		const { stdout, stderr } = await exec(
 			config.makeCommand,
 			{
-				cwd: __dirname,
+				cwd: __dirname
 			}
 		);
 
@@ -162,7 +161,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	);
 	process.stdout.write('\n');
 
-	let machineCode = [];
+	const machineCode = [];
 	try {
 		const binary = await readFile(config.machPath);
 		let i = 0;
@@ -199,7 +198,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	const inputTable = new Table({
 		head: ['Instruction', 'Binary'],
 		style: {
-			head: ['bgWhite', 'black'],
+			head: ['bgWhite', 'black']
 		}
 	});
 
@@ -239,6 +238,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		resetCursor(process.stdout);
 
 		try {
+			// eslint-disable-next-line no-await-in-loop
 			regfile = await portReadRegisters(serialport, { regCount: 32 });
 		} catch (error) {
 			logProcessorError(messages.reading, error);
@@ -252,11 +252,10 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		process.stdout.write('\n');
 	}
 
-
 	const options = {
 		head: ['Name', 'ABI', 'Value'],
 		style: {
-			head: ['bgWhite', 'black'],
+			head: ['bgWhite', 'black']
 		}
 	};
 
@@ -269,12 +268,12 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		registerTableLeft.push([
 			`x${i}`,
 			getAbi(i),
-			getRegHex(i),
+			getRegHex(i)
 		]);
 		registerTableRight.push([
 			`x${16 + i}`,
 			getAbi(16 + i),
-			getRegHex(16 + i),
+			getRegHex(16 + i)
 		]);
 	}
 	const linesLeft = `${registerTableLeft}`.split('\n');
@@ -286,8 +285,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	}
 
 	process.stdout.write(`${lines.join('\n')}\n`);
-}
-
+};
 
 (async () => {
 	const serialPortAddress = 'COM10';
@@ -305,7 +303,6 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	try {
 		serialport = await SerialPort.connect();
 	} catch (error) {
-
 		highlightedLine(
 			process.stdout,
 			chalk.bgRed.white,
@@ -334,7 +331,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 
 	serialport.on('data', data => {
 		writeFile(config.serialportLogPath, data, {
-			flag: 'a+',
+			flag: 'a+'
 		});
 	});
 	serialport.pause();
@@ -352,18 +349,17 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	});
 
 	try {
-		// await readEvalPrint({
+		// Await readEvalPrint({
 		// 	instruction: 'nop',
 		// 	serialport: serialport,
 		// });
 		for (; ;) {
 			// eslint-disable-next-line no-await-in-loop
+			const input = await question(rl, `${config.prompt} `);
+			// eslint-disable-next-line no-await-in-loop
 			await readEvalPrint({
-				instruction: await (async () => {
-					const text = await question(rl, `${config.prompt} `);
-					return text.trim();
-				})(),
-				serialport: serialport,
+				instruction: input.trim(),
+				serialport
 			});
 		}
 	} catch (error) {
@@ -372,5 +368,4 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		// eslint-disable-next-line unicorn/no-process-exit
 		process.exit(1);
 	}
-
 })();

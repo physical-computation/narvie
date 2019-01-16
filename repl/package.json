@@ -8,7 +8,7 @@
     "format": "xo --fix"
   },
   "devDependencies": {
-    "xo": "^0.23.0"
+    "xo": "0.23.0"
   },
   "dependencies": {
     "@harrysarson/cli-table": "0.1.0",

@@ -13,7 +13,7 @@ Harry Sarson (hds28), Pembroke College.
 * Install `wget`, `gcc`, `libmpc`, `mpfr`, and `gmp`.
 * Install `Sunflower-toolchain`:
   * Run `$ git submodule init && git submodule update && cd Sunflower-toolcahin`.
-  * Edit `Sunflower-toolchai/conf/setup.conf` and set `SUNFLOWERROOT` the the absolute path of the `Sunflower-toolchain` directory; `TARGET` to `riscv`; and `TARGET-ARCH` to `riscv32-elf`.
+  * Edit `Sunflower-toolchain/conf/setup.conf` and set `SUNFLOWERROOT` the the absolute path of the `Sunflower-toolchain` directory; `TARGET` to `riscv`; and `TARGET-ARCH` to `riscv32-elf`.
   * In `Sunflower-toolchain/tools/source`, run `./downloads.sh`.
   * In `Sunflower-toolchain/tools` run `make`.
 * Install node version 10 or greater (https://nodejs.org/en/)

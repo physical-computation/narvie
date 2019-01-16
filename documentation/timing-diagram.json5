@@ -1,0 +1,68 @@
+// https://wavedrom.com/editor.html
+
+{
+  signal: [
+    [
+      "Inputs",
+      {
+        name: "clk12",
+        wave: "p............."
+      },
+      {
+        name: "instruction_rcv",
+        wave: "010..........."
+      },
+      {
+        name: "instruction_buffer",
+        wave: "x=............",
+        data: [
+        	"instruction"
+        ]
+      }
+    ],
+    [
+      "Registers",
+      {
+        name: "do_execute",
+        wave: "0.1........0.."
+      },
+      {
+        name: "proc_cycle_count",
+        wave: "xx=.=.=.=.=.xx",
+        data: [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        name: "clk_proc",
+        wave: "1.0101010101.."
+      },
+      {
+        name: "inst_out",
+        wave: "=.=.=.........",
+        data: [
+          "noop",
+          "instruction",
+          "noop"
+        ]
+      }
+    ],
+    [
+      "Wires",
+      {
+        name: "send_regfile",
+        wave: "0..........10.",
+        data: [
+          "noop",
+          "instruction",
+          "noop"
+        ]
+      },
+    ],
+    {}
+  ]
+}

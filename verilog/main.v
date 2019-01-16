@@ -7,7 +7,6 @@ module main(clk12, led, tx, rx);
 	output tx;
 	input rx;
 
-	reg clk_proc = 1;
 
 	reg[7:0] tx_data;
 	reg tx_start;
@@ -28,12 +27,13 @@ module main(clk12, led, tx, rx);
 	reg send_regfile = 0;
 	wire[7:0] data_led;
 
-	wire [31:0] instruction_buffer;
-	reg [31:0] clocks_counter = 6;
 	reg do_execute = 0;
-	wire instruction_rcv;
-	reg [5:0] reg_counter = 32;
+	reg clk_proc = 1;
+	reg [2:0] proc_cycle_count;
 	reg rstn = 0;
+
+	wire [31:0] instruction_buffer;
+	wire instruction_rcv;
 
 	wire[1023:0] regfile2;
     genvar i;
@@ -87,26 +87,26 @@ module main(clk12, led, tx, rx);
 	// assign clk_proc = do_execute ? clk6 : 1;
 	assign led[7:2] = 0;
 	assign led[0] = 0;
-	assign inst_out = (do_execute == 1 && clocks_counter < 2)
+	assign inst_out = (do_execute == 1 && proc_cycle_count == 0)
 		? instruction_buffer
 		: noop;
 
 	always @(posedge clk12) begin
 		rstn <= 1;
 		if (instruction_rcv == 1 && do_execute == 0) begin
-			// led[2] <= !led[2];
-            // $display("instruction: %h", instruction_buffer);
-			clocks_counter <= 0;
+			proc_cycle_count <= 0;
 			do_execute <= 1;
 			clk_proc <= 0;
 		end
 		if (do_execute == 1) begin
-			clocks_counter <= clocks_counter + 1;
+			if (proc_cycle_count == 4) begin
+				do_execute <= 0;
+				send_regfile <= 1;
+			end
+			if (clk_proc == 1) begin
+				proc_cycle_count <= proc_cycle_count + 1;
+			end
 			clk_proc <= !clk_proc;
-		end
-		if (clocks_counter == 10 && do_execute == 1) begin
-			do_execute <= 0;
-			send_regfile <= 1;
 		end
 		if (send_regfile == 1) begin
 			send_regfile <= 0;

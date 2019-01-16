@@ -15,6 +15,23 @@ During these cycles, the instruction moves down the stages of the processor and 
 
 The final modification is to add a 2024 bit output from the `register_file` module which allows the register file to be read and sent over UART.
 
+## Processor Operation
+
+When not executing an instruction processor clock `proc_clk` is held high and the processor sits idle.
+The FPGA listens for bytes transmitted to it, and when four bytes have been received ([see UART Interface](#uart-interface)), sets `instruction_rcv` high for one clock cycle and stores the received instruction in `instruction_buffer`.
+
+On the next rising edge of the clock, `do_execute` is driven high and the instruction is outputted to the processor.
+The processor clock then cycles five times causing the processor to fully evaluate the instruction.
+After five rising edges of `proc_clk`, `do_execute` is driven low and `proc_clk` is kept high.
+For the first processor clock cycle of each instruction evaluated, `inst_out` is assigned to the instruction received by UART, at all other times it is assigned the noop instruction.
+`inst_out` is read by the processor during the fetch stage and the processor will evaluate what ever instruction it reads.
+
+Once the instruction has been executed `send_regfile` is driven high for one clock cycle which starts transmission of the register file from the FPGA to the computer.
+
+The execution of instructions is summarised by the following [timing diagram](https://wavedrom.com/editor.html?{signal%3A%20[%20[%20%27Inputs%27%2C%0A%20%20{name%3A%20%27clk12%27%2C%20wave%3A%20%27p.............%27}%2C%0A%20%20{name%3A%20%27instruction_rcv%27%2C%20wave%3A%20%270.10..........%27}%2C%0A%20%20]%2C%20[%20%27Registers%27%2C%0A%20%20{name%3A%20%27do_execute%27%2C%20wave%3A%20%270.1........0..%27}%2C%0A%20%20{name%3A%20%27clocks_counter%27%2C%20wave%3A%20%27xx%3D%3D%3D%3D%3D%3D%3D%3D%3Dxxx%27%2C%20data%3A%20[0%2C%201%2C%202%2C%203%2C%204%2C%205%2C%206%2C%207%2C%208]}%2C%0A%20%20]%2C%20[%20%27Outputs%27%2C%0A%20%20{name%3A%20%27clk_proc%27%2C%20wave%3A%20%271.0101010101..%27}%2C%0A%20%20{name%3A%20%27inst_out%27%2C%20wave%3A%20%27%3D.%3D.%3D.........%27%2C%20data%3A%20[%20%27noop%27%2C%20%27instruction%27%2C%20%27noop%27%20]}%2C%0A%20%20{name%3A%20%27send_regfile%27%2C%20wave%3A%20%270..........10.%27%2C%20data%3A%20[%20%27noop%27%2C%20%27instruction%27%2C%20%27noop%27%20]}%2C%0A]%20]}%0A).
+
+![RISCV REPL demo](/images/timing-diagram.png)
+
 ## UART Interface
 
 As RISC-V is a little-endian all UART transmissions will also be little-endian.

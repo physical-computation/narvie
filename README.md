@@ -9,12 +9,13 @@ Harry Sarson (hds28), Pembroke College.
 
 ## Installation
 
-* Install verilator version 3.874 or greater (https://www.veripool.org/wiki/verilator)
+* Install `verilator` version 3.874 or greater (https://www.veripool.org/wiki/verilator)
+* Install `wget`, `gcc`, `libmpc`, `mpfr`, and `gmp`.
 * Install `Sunflower-toolchain`:
   * Run `$ git submodule init && git submodule update && cd Sunflower-toolcahin`.
-  * The instructions at https://github.com/phillipstanleymarbell/Sunflower-toolchain explain how to install the cross compiler. Before installing the cross compiiler note the following:
-  * In step 2: set `SUNFLOWERROOT` the the absolute path of the `Sunflower-toolchain` directory; `TARGET` to `riscv`; and `TARGET-ARCH` to `riscv32-elf`.
-  * In step 3 there is no need to add `$SUNFLOWERROOT/tools/bin` to your path, also running `$ make cross-riscv` instead of `$ make cross-all` should reduce the build time considerably.
+  * Edit `Sunflower-toolchai/conf/setup.conf` and set `SUNFLOWERROOT` the the absolute path of the `Sunflower-toolchain` directory; `TARGET` to `riscv`; and `TARGET-ARCH` to `riscv32-elf`.
+  * In `Sunflower-toolchain/tools/source`, run `./downloads.sh`.
+  * In `Sunflower-toolchain/tools` run `make`.
 * Install node version 10 or greater (https://nodejs.org/en/)
 * `cd` into the `repl` subdirectory and run `npm install`.
 

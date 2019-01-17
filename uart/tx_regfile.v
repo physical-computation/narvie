@@ -4,8 +4,7 @@ module tx_regfile(
             tx,
             do_write,
             reg_file,
-            ready,
-            led
+            ready
         );
 
     // IN/OUTPUTS
@@ -16,7 +15,6 @@ module tx_regfile(
     input wire do_write;
     input wire [1023:0] reg_file;
     output wire ready;
-    output reg led;
 
     // CONNECTIONS
 
@@ -49,7 +47,6 @@ module tx_regfile(
         case(msg)
             DO_WRITE: begin
                 if (state == READY) begin
-		            led <= !led;
                     state <= ABOUT_TO_SEND;
                     byte_index <= 0;
                     tx_data <= reg_file[7:0];

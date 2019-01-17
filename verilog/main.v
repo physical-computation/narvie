@@ -7,13 +7,6 @@ module main(clk12, led, tx, rx);
 	output tx;
 	input rx;
 
-
-	reg[7:0] tx_data;
-	reg tx_start;
-	wire tx_ready;
-
-	localparam noop = 32'h13000000;
-
 	//Interface
 	wire[31:0] inst_in;
 	wire[31:0] inst_out;
@@ -24,23 +17,7 @@ module main(clk12, led, tx, rx);
 	wire data_memread;
 	wire[3:0] data_sign_mask;
 	wire[1023:0] regfile;
-	reg send_regfile = 0;
-	wire[7:0] data_led;
-
-	reg do_execute = 0;
-	reg clk_proc = 1;
-	reg [2:0] proc_cycle_count;
-	reg rstn = 0;
-
-	wire [31:0] instruction_buffer;
-	wire instruction_rcv;
-
-	wire[1023:0] regfile2;
-    genvar i;
-    generate
-        for (i=0; i<32; i=i+1)
-            assign regfile2[(32 * i) +: 32] = i;
-    endgenerate
+	wire clk_proc;
 
 	cpu processor(
 			.clk(clk_proc),
@@ -63,54 +40,16 @@ module main(clk12, led, tx, rx);
 			.memread(data_memread),
 			.read_data(data_out),
 			.sign_mask(data_sign_mask),
-			.led(data_led)
+			.led(led)
 		);
 
-	tx_regfile TX0 (
-		.clk12(clk12),
-		.rstn(rstn),
-		.tx(tx),
-        .reg_file(regfile),
-        .do_write(send_regfile),
-        .ready(tx_ready),
-		.led(led[1])
-	);
-
-	rx_instruction RX0 (
-		.clk12(clk12),
-		.rstn(rstn),
-		.rx(rx),
-		.instruction(instruction_buffer),
-		.instruction_rcv(instruction_rcv)
-	);
-
-	// assign clk_proc = do_execute ? clk6 : 1;
-	assign led[7:2] = 0;
-	assign led[0] = 0;
-	assign inst_out = (do_execute == 1 && proc_cycle_count == 0)
-		? instruction_buffer
-		: noop;
-
-	always @(posedge clk12) begin
-		rstn <= 1;
-		if (instruction_rcv == 1 && do_execute == 0) begin
-			proc_cycle_count <= 0;
-			do_execute <= 1;
-			clk_proc <= 0;
-		end
-		if (do_execute == 1) begin
-			if (proc_cycle_count == 4) begin
-				do_execute <= 0;
-				send_regfile <= 1;
-			end
-			if (clk_proc == 1) begin
-				proc_cycle_count <= proc_cycle_count + 1;
-			end
-			clk_proc <= !clk_proc;
-		end
-		if (send_regfile == 1) begin
-			send_regfile <= 0;
-		end
-	end
+	uart_instruction uart_instruction(
+			.clk12(clk12),
+			.tx(tx),
+			.rx(rx),
+			.regfile(regfile),
+			.clk_proc(clk_proc),
+			.inst_out(inst_out)
+		);
 
 endmodule

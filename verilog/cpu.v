@@ -10,7 +10,13 @@ module cpu(
 			data_mem_memwrite,
 			data_mem_memread,
 			data_mem_sign_mask,
-			regfile
+			regfile_do_write,
+			regfile_write_addr,
+			regfile_write_data,
+			regfile_read_address0,
+			regfile_read_address1,
+			regfile_read_data0,
+			regfile_read_data1
 		);
 
 	//Input Clock
@@ -28,8 +34,14 @@ module cpu(
 	output data_mem_memread;
 	output[3:0] data_mem_sign_mask;
 
-	//Register output for logging
-	output [1023:0] regfile;
+	//Register File
+	output regfile_do_write;
+	output[4:0] regfile_write_addr;
+	output[31:0] regfile_write_data;
+	output[4:0] regfile_read_address0;
+	output[4:0] regfile_read_address1;
+	input[31:0] regfile_read_data0;
+	input[31:0] regfile_read_data1;
 
 	//Program Counter
 	wire[31:0] pc_mux0;
@@ -62,8 +74,6 @@ module cpu(
 
 	//Decode stage
 	wire [31:0] cont_mux_out; //control signal mux
-	wire[31:0] regA_out;
-	wire[31:0] regB_out;
 	wire[31:0] imm_out;
 	wire[31:0] RegA_mux_out;
 	wire[31:0] RegB_mux_out;
@@ -176,17 +186,6 @@ module cpu(
 			.out(cont_mux_out)
 		);
 
-	regfile register_files(
-			.clk(clk),
-			.write(mem_wb_out[2]),
-			.wrAddr(mem_wb_out[104:100]),
-			.wrData(reg_dat_mux_out),
-			.rdAddrA(inst_mux_out[19:15]), //if_id_out[51:47] //inst_mux_out[19:15]
-			.rdDataA(regA_out),
-			.rdAddrB(inst_mux_out[24:20]), //if_id_out[56:52] //inst_mux_out[24:20]
-			.rdDataB(regB_out),
-			.regfilePort(regfile)
-		);
 
 	imm_gen immediate_generator(
 			.inst(if_id_out[63:32]),
@@ -214,14 +213,14 @@ module cpu(
 		);
 
 	mux2to1 RegA_mux(
-			.input0(regA_out),
+			.input0(regfile_read_data0),
 			.input1({27'b0, if_id_out[51:47]}),
 			.select(CSRRI_signal),
 			.out(RegA_mux_out)
 		);
 
 	mux2to1 RegB_mux(
-			.input0(regB_out),
+			.input0(regfile_read_data1),
 			.input1(rdValOut_CSR),
 			.select(CSRR_signal),
 			.out(RegB_mux_out)
@@ -440,6 +439,13 @@ module cpu(
 	assign data_mem_memwrite = ex_cont_mux_out[4];
 	assign data_mem_memread = ex_cont_mux_out[5];
 	assign data_mem_sign_mask = id_ex_out[150:147];
+
+	//Register File Connections
+	assign regfile_do_write = mem_wb_out[2];
+	assign regfile_write_addr = mem_wb_out[104:100];
+	assign regfile_write_data = reg_dat_mux_out;
+	assign regfile_read_address0 = inst_mux_out[19:15]; //if_id_out[51:47] //inst_mux_out[19:15]
+	assign regfile_read_address1 = inst_mux_out[24:20]; //if_id_out[56:52] //inst_mux_out[24:20]
 
 endmodule
 

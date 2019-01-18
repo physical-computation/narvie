@@ -16,8 +16,18 @@ module main(clk12, led, tx, rx);
 	wire data_memwrite;
 	wire data_memread;
 	wire[3:0] data_sign_mask;
-	wire[1023:0] regfile;
 	wire clk_proc;
+
+	//Register File
+	wire regfile_do_write;
+	wire[4:0] regfile_write_addr;
+	wire[31:0] regfile_write_data;
+	wire[4:0] regfile_read_address0;
+	wire[4:0] regfile_read_address1;
+	wire[31:0] regfile_read_data0;
+	wire[31:0] regfile_read_data1;
+
+	wire[1023:0] regfile;
 
 	cpu processor(
 			.clk(clk_proc),
@@ -29,7 +39,13 @@ module main(clk12, led, tx, rx);
 			.data_mem_memwrite(data_memwrite),
 			.data_mem_memread(data_memread),
 			.data_mem_sign_mask(data_sign_mask),
-			.regfile(regfile)
+			.regfile_do_write(regfile_do_write),
+			.regfile_write_addr(regfile_write_addr),
+			.regfile_write_data(regfile_write_data),
+			.regfile_read_address0(regfile_read_address0),
+			.regfile_read_address1(regfile_read_address1),
+			.regfile_read_data0(regfile_read_data0),
+			.regfile_read_data1(regfile_read_data1)
 		);
 
 	data_memory data_mem(
@@ -41,6 +57,18 @@ module main(clk12, led, tx, rx);
 			.read_data(data_out),
 			.sign_mask(data_sign_mask),
 			.led(led)
+		);
+
+	regfile register_files(
+			.clk(clk_proc),
+			.write(regfile_do_write),
+			.wrAddr(regfile_write_addr),
+			.wrData(regfile_write_data),
+			.rdAddrA(regfile_read_address0),
+			.rdAddrB(regfile_read_address1),
+			.rdDataA(regfile_read_data0),
+			.rdDataB(regfile_read_data1),
+			.regfilePort(regfile)
 		);
 
 	uart_instruction uart_instruction(

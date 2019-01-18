@@ -287,7 +287,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	process.stdout.write(`${lines.join('\n')}\n`);
 };
 
-(async () => {
+const run = async rl => {
 	const portAddress = config.mockSerialPort ?
 		`TCP port ${config.portForMockedSerialPort}` :
 		`serial port ${config.serialPortAddress}`;
@@ -316,11 +316,10 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		highlightedLine(
 			process.stdout,
 			chalk.bgRed.white,
-			'Check the riscv processor is connected and run the program again.',
+			'Check the riscv processor is connected.',
 		);
 		process.stdout.write('\n');
-		// eslint-disable-next-line unicorn/no-process-exit
-		process.exit(1);
+		return;
 	}
 
 	try {
@@ -345,17 +344,16 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	);
 	process.stdout.write('\n');
 
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stdout
-	});
+	let portClosed = false;
+
+	serialport.on('close', () => portClosed = true);
 
 	try {
 		// Await readEvalPrint({
 		// 	instruction: 'nop',
 		// 	serialport: serialport,
 		// });
-		for (; ;) {
+		while (!portClosed) {
 			// eslint-disable-next-line no-await-in-loop
 			const input = await question(rl, `${config.prompt} `);
 			// eslint-disable-next-line no-await-in-loop
@@ -366,8 +364,19 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		}
 	} catch (error) {
 		console.error(error);
-		rl.close();
-		// eslint-disable-next-line unicorn/no-process-exit
-		process.exit(1);
+		return;
+	}
+};
+
+(async () => {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout
+	});
+	for (; ;) {
+		// eslint-disable-next-line no-await-in-loop
+		await run(rl);
+		process.stdout.write(`\nRetrying in ${config.retryDelay / 1000} seconds... \n\n`);
+		await (new Promise(resolve => setTimeout(resolve, config.retryDelay)));
 	}
 })();

@@ -20,6 +20,9 @@ module.exports = Object.freeze({
     // See https://serialport.io/docs/en/api-stream#path
     serialPortAddress: 'COM10',
 
+    // Milliseconds to wait before retrying after error
+    retryDelay: 3000,
+
     // Prompt for user input.
     prompt: '>',
 

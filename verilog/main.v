@@ -17,6 +17,7 @@ module main(clk12, led, tx, rx);
 	wire data_memread;
 	wire[3:0] data_sign_mask;
 	wire clk_proc;
+	wire clk_reg;
 
 	//Register File
 	wire regfile_do_write;
@@ -59,25 +60,19 @@ module main(clk12, led, tx, rx);
 			.led(led)
 		);
 
-	regfile register_files(
-			.clk(clk_proc),
-			.write(regfile_do_write),
-			.wrAddr(regfile_write_addr),
-			.wrData(regfile_write_data),
-			.rdAddrA(regfile_read_address0),
-			.rdAddrB(regfile_read_address1),
-			.rdDataA(regfile_read_data0),
-			.rdDataB(regfile_read_data1),
-			.regfilePort(regfile)
-		);
-
-	uart_instruction uart_instruction(
+	uart_regfile register_files(
 			.clk12(clk12),
 			.tx(tx),
 			.rx(rx),
-			.regfile(regfile),
 			.clk_proc(clk_proc),
-			.inst_out(inst_out)
+			.inst_out(inst_out),
+			.regfile_do_write(regfile_do_write),
+			.regfile_write_addr(regfile_write_addr),
+			.regfile_write_data(regfile_write_data),
+			.regfile_read_address0(regfile_read_address0),
+			.regfile_read_address1(regfile_read_address1),
+			.regfile_read_data0(regfile_read_data0),
+			.regfile_read_data1(regfile_read_data1)
 		);
 
 endmodule

@@ -28,10 +28,6 @@ module uart_regfile(
 	output[31:0] regfile_read_data0;
 	output[31:0] regfile_read_data1;
 
-	reg[7:0] tx_data;
-	reg tx_start;
-	wire tx_ready;
-
 	localparam noop = 32'h13000000;
 
 	reg[31:0] regfile[31:0];
@@ -58,6 +54,7 @@ module uart_regfile(
 	end
 
 	always @(posedge clk_proc) begin
+		$display("write %h to %d (%b%b)", regfile_write_data, regfile_write_addr, regfile_do_write, do_execute);
 		if(regfile_do_write == 1 && regfile_write_addr != 0) begin
 			regfile[regfile_write_addr] <= regfile_write_data;
 		end
@@ -93,14 +90,47 @@ module uart_regfile(
 		end
 	end
 
-	tx_regfile TX0 (
-		.clk12(clk12),
-		.rstn(rstn),
-		.tx(tx),
-        .reg_file(regfilePort),
-        .do_write(send_regfile),
-        .ready(tx_ready)
-	);
+	wire tx_ready;
+    reg [7:0] tx_data;
+
+    // STATE
+
+    localparam SENDING       = 2'b00;
+    localparam READY         = 2'b01;
+    localparam ABOUT_TO_SEND = 2'b11;
+
+    reg[1:0] state = READY;
+    reg[1:0] byte_index = 0;
+    reg[4:0] word_index = 0;
+
+    // UPDATE
+
+    always @(posedge clk12/* or negedge rstn*/) begin
+        if (send_regfile == 1 && state == READY) begin
+            state <= ABOUT_TO_SEND;
+            byte_index <= 0;
+            word_index <= 0;
+            tx_data <= regfilePort[7:0];
+        end
+
+        if (state == ABOUT_TO_SEND && tx_ready == 0) begin
+            state <= SENDING;
+        end
+
+        if (tx_ready == 1 && state == SENDING) begin
+            // $display("sending %d, %d", word_index, byte_index);
+            if (byte_index == 3)
+                word_index <= word_index + 1;
+
+            if (byte_index == 3 && word_index == 31)
+                state <= READY;
+            else
+                state <= ABOUT_TO_SEND;
+
+            byte_index <= byte_index + 1;
+            tx_data <= regfilePort[(8 * (word_index * 4 + byte_index + 1)) +: 8];
+        end
+    end
 
 	rx_instruction RX0 (
 		.clk12(clk12),
@@ -109,4 +139,13 @@ module uart_regfile(
 		.instruction(instruction_buffer),
 		.instruction_rcv(instruction_rcv)
 	);
+
+	uart_tx #(.BAUDRATE(`B115200)) TX0 (
+        .clk(clk12),
+        .rstn(rstn),
+        .data(tx_data),
+        .start(state == ABOUT_TO_SEND),
+        .tx(tx),
+        .ready(tx_ready)
+    );
 endmodule

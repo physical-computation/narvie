@@ -17,7 +17,6 @@ module main(clk12, led, tx, rx);
 	wire data_memread;
 	wire[3:0] data_sign_mask;
 	wire clk_proc;
-	wire clk_reg;
 
 	//Register File
 	wire regfile_do_write;

@@ -21,8 +21,24 @@ Harry Sarson (hds28), Pembroke College.
 
 ## Running
 
-* `$ ./sim &` to start the simulation and move it to the background.
-* `node repl` starts the interactive repl.
+You will need two terminals to run the RISC-V REPL.
+
+### First Terminal
+
+#### Simulation
+
+* `$ ./sim` to start the simulation and move it to the background.
+
+#### Running on an FPGA
+
+* `$ ./progMDP` to synthesise the verilog and to flash to the FPGA.
+* `$ nc -l 8001 > /dev/ttyS10 < /dev/ttyS10` forwards the serial port data to a TCP port.
+    You should replace `/dev/ttyS10` with the particular port the FPGA is connected to.
+    You may need to use `stty` to set the serial port baud rate to `112500`.
+
+### Second Terminal
+
+* `$ node repl` starts the interactive repl.
 * Type instructions into the prompt. Examples are `nop`, `li t0, 1678`, or `addi t0, t0, 1`.
 * When done, use `ctrl-c` to quit the repl, `fg` to bring the simulation to the forground and `ctrl-c` to quit the simulation.
 
@@ -32,6 +48,8 @@ Harry Sarson (hds28), Pembroke College.
 * [Processor documentation](documentation/processor.md)
 
 ## Demo
+
+This demo shows the RISC-V REPL running in a simulation.
 
 ![RISCV REPL demo](/images/demo.gif?raw=true)
 

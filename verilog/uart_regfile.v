@@ -31,7 +31,6 @@ module uart_regfile(
 	localparam noop = 32'h13000000;
 
 	reg[31:0] regfile[31:0];
-	wire [1023:0] regfilePort;
 	reg send_regfile = 0;
 
 	reg do_execute = 0;
@@ -41,20 +40,11 @@ module uart_regfile(
 	wire [31:0] instruction_buffer;
 	wire instruction_rcv;
 
-	//Regfile
-
-    genvar i;
-    generate
-        for (i=0; i<32; i=i+1)
-            assign regfilePort[(32 * i + 31):(32 * i)] = regfile[i];
-    endgenerate
-
 	initial begin
 		regfile[0] = 32'b0;
 	end
 
 	always @(posedge clk_proc) begin
-		$display("write %h to %d (%b%b)", regfile_write_data, regfile_write_addr, regfile_do_write, do_execute);
 		if(regfile_do_write == 1 && regfile_write_addr != 0) begin
 			regfile[regfile_write_addr] <= regfile_write_data;
 		end
@@ -63,6 +53,9 @@ module uart_regfile(
 	end
 
 	//UART
+
+	always @(posedge clk12)
+		tx_data <= regfile[next_index[6:2]][8 * next_index[1:0] +: 8];
 
 	assign inst_out = (do_execute == 1 && proc_cycle_count == 0)
 		? instruction_buffer
@@ -100,17 +93,18 @@ module uart_regfile(
     localparam ABOUT_TO_SEND = 2'b11;
 
     reg[1:0] state = READY;
-    reg[1:0] byte_index = 0;
-    reg[4:0] word_index = 0;
+    reg[7:0] index;
+    reg[7:0] next_index;
 
     // UPDATE
 
-    always @(posedge clk12/* or negedge rstn*/) begin
+	// always @(posedge clk12) begin
+
+    always @(posedge clk12) begin
         if (send_regfile == 1 && state == READY) begin
             state <= ABOUT_TO_SEND;
-            byte_index <= 0;
-            word_index <= 0;
-            tx_data <= regfilePort[7:0];
+            index <= 0;
+            next_index <= 1;
         end
 
         if (state == ABOUT_TO_SEND && tx_ready == 0) begin
@@ -118,17 +112,13 @@ module uart_regfile(
         end
 
         if (tx_ready == 1 && state == SENDING) begin
-            // $display("sending %d, %d", word_index, byte_index);
-            if (byte_index == 3)
-                word_index <= word_index + 1;
-
-            if (byte_index == 3 && word_index == 31)
+            if (index == 127)
                 state <= READY;
             else
                 state <= ABOUT_TO_SEND;
 
-            byte_index <= byte_index + 1;
-            tx_data <= regfilePort[(8 * (word_index * 4 + byte_index + 1)) +: 8];
+            index <= next_index;
+            next_index <= next_index + 1;
         end
     end
 

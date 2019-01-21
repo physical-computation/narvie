@@ -229,7 +229,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 			chalk.bgGreen.black,
 			`${messages.writing(disassembly[i])} Success`,
 		);
-		process.stdout.write('\n');
+		process.stdout.write('\n\n');
 		highlightedLine(
 			process.stdout,
 			chalk.bgYellow.black,
@@ -373,6 +373,11 @@ const run = async rl => {
 		input: process.stdin,
 		output: process.stdout
 	});
+	// rl.on('SIGINT', () => {
+	// 	rl.close();
+	// 	process.stdout.write('\n');
+	// 	process.exit();
+	// });
 	for (; ;) {
 		// eslint-disable-next-line no-await-in-loop
 		await run(rl);

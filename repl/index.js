@@ -373,11 +373,11 @@ const run = async rl => {
 		input: process.stdin,
 		output: process.stdout
 	});
-	// rl.on('SIGINT', () => {
-	// 	rl.close();
-	// 	process.stdout.write('\n');
-	// 	process.exit();
-	// });
+	rl.on('SIGINT', () => {
+		rl.close();
+		process.stdout.write('\n');
+		process.exit();
+	});
 	for (; ;) {
 		// eslint-disable-next-line no-await-in-loop
 		await run(rl);

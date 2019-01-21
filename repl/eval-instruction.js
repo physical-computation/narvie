@@ -12,7 +12,7 @@ if (config.mockInstructionEvaluation) {
 		cb();
 	});
 
-	const portReadRegisters = (_, { regCount }) => new Promise(resolve => {
+	const portReadRegisters = (_, {regCount}) => new Promise(resolve => {
 		const wordSize = 4;
 		const expectedBytes = wordSize * regCount;
 		const regfile = new Uint32Array(regCount);
@@ -35,7 +35,7 @@ if (config.mockInstructionEvaluation) {
 		port.write(buffer);
 	};
 
-	const portReadRegisters = (port, { regCount }) => new Promise((resolve, reject) => {
+	const portReadRegisters = (port, {regCount}) => new Promise((resolve, reject) => {
 		const bytesRead = [];
 		const wordSize = 4;
 		const expectedBytes = wordSize * regCount;

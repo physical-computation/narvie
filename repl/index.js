@@ -11,7 +11,7 @@ const chalk = require('chalk');
 const Table = require('@harrysarson/cli-table');
 const config = require('./config');
 
-const { portWrite, portReadRegisters } = require('./eval-instruction');
+const {portWrite, portReadRegisters} = require('./eval-instruction');
 
 const SerialPort = require('./serialport');
 
@@ -77,7 +77,7 @@ const highlightedLine = (tty, color, text) => {
 	tty.write(color(text));
 };
 
-const readEvalPrint = async ({ instruction, serialport }) => {
+const readEvalPrint = async ({instruction, serialport}) => {
 	const messages = {
 		compiling: inst => `Compiling ${chalk.bgWhite.black(` ${inst} `)} to riscv machine code:`,
 		writing: inst => `Writing ${chalk.bgWhite.black(` ${inst} `)} to to riscv processor:`,
@@ -120,7 +120,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 	resetCursor(process.stdout);
 
 	try {
-		const { stdout, stderr } = await exec(
+		const {stdout, stderr} = await exec(
 			config.makeCommand,
 			{
 				cwd: __dirname
@@ -238,8 +238,7 @@ const readEvalPrint = async ({ instruction, serialport }) => {
 		resetCursor(process.stdout);
 
 		try {
-			// eslint-disable-next-line no-await-in-loop
-			regfile = await portReadRegisters(serialport, { regCount: 32 });
+			regfile = await portReadRegisters(serialport, {regCount: 32});
 		} catch (error) {
 			logProcessorError(messages.reading, error);
 			return;
@@ -346,7 +345,9 @@ const run = async rl => {
 
 	let portClosed = false;
 
-	serialport.on('close', () => portClosed = true);
+	serialport.on('close', () => {
+		portClosed = true;
+	});
 
 	try {
 		// Await readEvalPrint({
@@ -354,9 +355,7 @@ const run = async rl => {
 		// 	serialport: serialport,
 		// });
 		while (!portClosed) {
-			// eslint-disable-next-line no-await-in-loop
 			const input = await question(rl, `${config.prompt} `);
-			// eslint-disable-next-line no-await-in-loop
 			await readEvalPrint({
 				instruction: input.trim(),
 				serialport
@@ -364,7 +363,6 @@ const run = async rl => {
 		}
 	} catch (error) {
 		console.error(error);
-		return;
 	}
 };
 
@@ -379,7 +377,6 @@ const run = async rl => {
 		process.exit();
 	});
 	for (; ;) {
-		// eslint-disable-next-line no-await-in-loop
 		await run(rl);
 		process.stdout.write(`\nRetrying in ${config.retryDelay / 1000} seconds... \n\n`);
 		await (new Promise(resolve => setTimeout(resolve, config.retryDelay)));

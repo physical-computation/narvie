@@ -19,5 +19,12 @@
     "serialport": "7.1.1",
     "temp-write": "3.4.0",
     "tempy": "0.2.1"
-  }
+  },
+	"xo": {
+		"rules": {
+      "no-await-in-loop": "off",
+      "no-unmodified-loop-condition": "off",
+      "unicorn/no-process-exit": "off"
+    }
+	}
 }

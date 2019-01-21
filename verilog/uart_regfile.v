@@ -18,7 +18,7 @@ module uart_regfile(
 	input clk12;
 	output tx;
 	input rx;
-	output reg clk_proc = 1;
+	output clk_proc;
     output[31:0] inst_out;
 	input regfile_do_write;
 	input [4:0] regfile_write_addr;
@@ -34,7 +34,7 @@ module uart_regfile(
 	reg send_regfile = 0;
 
 	reg do_execute = 0;
-	reg [2:0] proc_cycle_count;
+	reg [3:0] proc_cycle_count = 1;
 	reg rstn = 0;
 
 	wire [31:0] instruction_buffer;
@@ -43,6 +43,8 @@ module uart_regfile(
 	initial begin
 		regfile[0] = 32'b0;
 	end
+
+	assign clk_proc = proc_cycle_count[0];
 
 	always @(posedge clk_proc) begin
 		if(regfile_do_write == 1 && regfile_write_addr != 0) begin
@@ -57,7 +59,7 @@ module uart_regfile(
 	always @(posedge clk12)
 		tx_data <= regfile[next_index[6:2]][8 * next_index[1:0] +: 8];
 
-	assign inst_out = (do_execute == 1 && proc_cycle_count == 0)
+	assign inst_out = (do_execute == 1 && proc_cycle_count[3:1] == 0)
 		? instruction_buffer
 		: noop;
 
@@ -66,17 +68,13 @@ module uart_regfile(
 		if (instruction_rcv == 1 && do_execute == 0) begin
 			proc_cycle_count <= 0;
 			do_execute <= 1;
-			clk_proc <= 0;
 		end
 		if (do_execute == 1) begin
-			if (proc_cycle_count == 4) begin
+			if (proc_cycle_count[3:1] == 4) begin
 				do_execute <= 0;
 				send_regfile <= 1;
 			end
-			if (clk_proc == 1) begin
-				proc_cycle_count <= proc_cycle_count + 1;
-			end
-			clk_proc <= !clk_proc;
+			proc_cycle_count <= proc_cycle_count + 1;
 		end
 		if (send_regfile == 1) begin
 			send_regfile <= 0;

@@ -28,7 +28,15 @@ module uart_regfile(
 	output[31:0] regfile_read_data0;
 	output[31:0] regfile_read_data1;
 
+
 	localparam noop = 32'h13000000;
+    localparam SENDING       = 2'b00;
+    localparam READY         = 2'b01;
+    localparam ABOUT_TO_SEND = 2'b11;
+
+    reg[1:0] state = READY;
+	reg[7:0] index = 0;
+    reg[7:0] next_index = 0;
 
 	reg[31:0] regfile[31:0];
 	reg send_regfile = 0;
@@ -37,6 +45,8 @@ module uart_regfile(
 	reg [3:0] proc_cycle_count = 1;
 	reg rstn = 0;
 
+	wire tx_ready;
+    reg [7:0] tx_data;
 	wire [31:0] instruction_buffer;
 	wire instruction_rcv;
 
@@ -45,6 +55,9 @@ module uart_regfile(
 	end
 
 	assign clk_proc = proc_cycle_count[0];
+	assign inst_out = (do_execute == 1 && proc_cycle_count[3:1] == 0)
+		? instruction_buffer
+		: noop;
 
 	always @(posedge clk_proc) begin
 		if(regfile_do_write == 1 && regfile_write_addr != 0) begin
@@ -54,17 +67,13 @@ module uart_regfile(
 		regfile_read_data1 <= regfile[regfile_read_address1];
 	end
 
-	//UART
-
 	always @(posedge clk12)
 		tx_data <= regfile[next_index[6:2]][8 * next_index[1:0] +: 8];
 
-	assign inst_out = (do_execute == 1 && proc_cycle_count[3:1] == 0)
-		? instruction_buffer
-		: noop;
+	always @(posedge clk12)
+		rstn <= 1;
 
 	always @(posedge clk12) begin
-		rstn <= 1;
 		if (instruction_rcv == 1 && do_execute == 0) begin
 			proc_cycle_count <= 0;
 			do_execute <= 1;
@@ -76,27 +85,13 @@ module uart_regfile(
 			end
 			proc_cycle_count <= proc_cycle_count + 1;
 		end
+	end
+
+	always @(posedge clk12) begin
 		if (send_regfile == 1) begin
 			send_regfile <= 0;
 		end
 	end
-
-	wire tx_ready;
-    reg [7:0] tx_data;
-
-    // STATE
-
-    localparam SENDING       = 2'b00;
-    localparam READY         = 2'b01;
-    localparam ABOUT_TO_SEND = 2'b11;
-
-    reg[1:0] state = READY;
-    reg[7:0] index;
-    reg[7:0] next_index;
-
-    // UPDATE
-
-	// always @(posedge clk12) begin
 
     always @(posedge clk12) begin
         if (send_regfile == 1 && state == READY) begin
@@ -104,11 +99,15 @@ module uart_regfile(
             index <= 0;
             next_index <= 1;
         end
+	end
 
+    always @(posedge clk12) begin
         if (state == ABOUT_TO_SEND && tx_ready == 0) begin
             state <= SENDING;
         end
+	end
 
+    always @(posedge clk12) begin
         if (tx_ready == 1 && state == SENDING) begin
             if (index == 127)
                 state <= READY;

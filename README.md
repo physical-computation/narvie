@@ -27,7 +27,7 @@ You will need two terminals to run the RISC-V REPL.
 
 #### Simulation
 
-* `$ ./sim` to start the simulation and move it to the background.
+* `$ ./sim` to start the simulation.
 
 #### Running on an FPGA
 
@@ -40,7 +40,7 @@ You will need two terminals to run the RISC-V REPL.
 
 * `$ node repl` starts the interactive repl.
 * Type instructions into the prompt. Examples are `nop`, `li t0, 1678`, or `addi t0, t0, 1`.
-* When done, use `ctrl-c` to quit the repl, `fg` to bring the simulation to the forground and `ctrl-c` to quit the simulation.
+* When done, use `ctrl-c` to quit the repl.
 
 ## Documentation
 

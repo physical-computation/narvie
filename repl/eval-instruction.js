@@ -33,6 +33,13 @@ if (config.mockInstructionEvaluation) {
 		// Make sure we do not buffer the write
 		assert(port.writableHighWaterMark === 0);
 		port.write(buffer);
+		return new Promise(resolve => {
+			if (port.drain) {
+				port.drain(resolve);
+			} else {
+				resolve();
+			}
+		});
 	};
 
 	const portReadRegisters = (port, {regCount}) => new Promise((resolve, reject) => {
@@ -72,23 +79,31 @@ if (config.mockInstructionEvaluation) {
 			reject(new Error('Stream ended before all registers could be read'));
 		};
 
-		// Port.drain(() => {
-		port.on('data', dataCallback);
-		port.on('error', errorCallback);
-		port.on('end', endCallback);
-		port.resume();
-		// });
+		const addListeners = () => {
+			port.on('data', dataCallback);
+			port.on('error', errorCallback);
+			port.on('end', endCallback);
+			port.on('close', endCallback);
+			port.resume();
+		};
+
+		if (port.drain) {
+			port.drain(addListeners);
+		} else {
+			addListeners();
+		}
 
 		function cleanUp() {
 			port.removeListener('data', dataCallback);
 			port.removeListener('error', errorCallback);
 			port.removeListener('end', endCallback);
+			port.removeListener('close', endCallback);
 		}
 
-		// SetTimeout(function () {
-		// 	cleanUp();
-		// 	reject(new Error('Read timed out!'));
-		// }, 10000);
+		setTimeout(() => {
+			cleanUp();
+			reject(new Error('Read timed out!'));
+		}, config.readRegistersTimeout);
 	});
 
 	module.exports = {

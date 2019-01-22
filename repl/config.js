@@ -20,6 +20,9 @@ module.exports = Object.freeze({
 	// See https://serialport.io/docs/en/api-stream#path
 	serialPortAddress: 'COM10',
 
+	// Milliseconds to wait before giving up reading registers
+	readRegistersTimeout: 5000,
+
 	// Milliseconds to wait before retrying after error
 	retryDelay: 3000,
 

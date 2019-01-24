@@ -356,13 +356,29 @@ const run = async rl => {
 		// });
 		while (!portClosed) {
 			const input = await question(rl, `${config.prompt} `);
+			if (portClosed) {
+				break;
+			}
 			await readEvalPrint({
 				instruction: input.trim(),
 				serialport
 			});
 		}
+		process.stdout.write('\n');
+		highlightedLine(
+			process.stdout,
+			chalk.bgRed.white,
+			`Connection to processor at ${chalk.bgWhite.black(` ${portAddress} `)} ended`,
+		);
+		process.stdout.write('\n');
 	} catch (error) {
-		console.error(error);
+		process.stdout.write('\n');
+		highlightedLine(
+			process.stdout,
+			chalk.bgRed.white,
+			`${error} Failed`,
+		);
+		process.stdout.write('\n');
 	}
 };
 

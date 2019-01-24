@@ -35,8 +35,8 @@ module uart_regfile(
     localparam ABOUT_TO_SEND = 2'b11;
 
     reg[1:0] state = READY;
-	reg[7:0] index = 0;
-    reg[7:0] next_index = 0;
+	reg[7:0] index;
+    reg[7:0] next_index;
 
 	reg[31:0] regfile[31:0];
 	reg send_regfile = 0;
@@ -70,10 +70,8 @@ module uart_regfile(
 	always @(posedge clk12)
 		tx_data <= regfile[next_index[6:2]][8 * next_index[1:0] +: 8];
 
-	always @(posedge clk12)
-		rstn <= 1;
-
 	always @(posedge clk12) begin
+		rstn <= 1;
 		if (instruction_rcv == 1 && do_execute == 0) begin
 			proc_cycle_count <= 0;
 			do_execute <= 1;
@@ -85,9 +83,6 @@ module uart_regfile(
 			end
 			proc_cycle_count <= proc_cycle_count + 1;
 		end
-	end
-
-	always @(posedge clk12) begin
 		if (send_regfile == 1) begin
 			send_regfile <= 0;
 		end
@@ -99,15 +94,11 @@ module uart_regfile(
             index <= 0;
             next_index <= 1;
         end
-	end
 
-    always @(posedge clk12) begin
         if (state == ABOUT_TO_SEND && tx_ready == 0) begin
             state <= SENDING;
         end
-	end
 
-    always @(posedge clk12) begin
         if (tx_ready == 1 && state == SENDING) begin
             if (index == 127)
                 state <= READY;

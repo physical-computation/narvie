@@ -287,9 +287,7 @@ const readEvalPrint = async ({instruction, serialport}) => {
 };
 
 const run = async rl => {
-	const portAddress = config.mockSerialPort ?
-		`TCP port ${config.portForMockedSerialPort}` :
-		`serial port ${config.serialPortAddress}`;
+	const portAddress = `TCP port ${config.portForUart}`;
 	const connectingMessage = `Connecting to processor at ${chalk.bgWhite.black(` ${portAddress} `)}:`;
 
 	highlightedLine(
@@ -323,11 +321,11 @@ const run = async rl => {
 
 	try {
 		await mkdir(path.dirname(config.serialportLogPath));
-	} catch (error) { }
+	} catch (error) {}
 	await writeFile(config.serialportLogPath, '');
 	try {
 		await mkdir(config.compilerFileDir);
-	} catch (error) { }
+	} catch (error) {}
 
 	serialport.on('data', data => {
 		writeFile(config.serialportLogPath, data, {

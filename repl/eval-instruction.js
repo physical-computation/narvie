@@ -33,13 +33,6 @@ if (config.mockInstructionEvaluation) {
 		// Make sure we do not buffer the write
 		assert(port.writableHighWaterMark === 0);
 		port.write(buffer);
-		return new Promise(resolve => {
-			if (port.drain) {
-				port.drain(resolve);
-			} else {
-				resolve();
-			}
-		});
 	};
 
 	const portReadRegisters = (port, {regCount}) => new Promise((resolve, reject) => {
@@ -79,19 +72,11 @@ if (config.mockInstructionEvaluation) {
 			reject(new Error('Stream ended before all registers could be read'));
 		};
 
-		const addListeners = () => {
-			port.on('data', dataCallback);
-			port.on('error', errorCallback);
-			port.on('end', endCallback);
-			port.on('close', endCallback);
-			port.resume();
-		};
-
-		if (port.drain) {
-			port.drain(addListeners);
-		} else {
-			addListeners();
-		}
+		port.on('data', dataCallback);
+		port.on('error', errorCallback);
+		port.on('end', endCallback);
+		port.on('close', endCallback);
+		port.resume();
 
 		function cleanUp() {
 			port.removeListener('data', dataCallback);

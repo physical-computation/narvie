@@ -7,18 +7,10 @@ module.exports = Object.freeze({
 	// random string of bytes for the register file.
 	mockInstructionEvaluation: false,
 
-	// Read TCP port instead of serial port, useful if the processor
-	// is running in a simulation instead of on an FPGA.
-	mockSerialPort: true,
-
 	// TCP port to use if mocking serial port. Must match the port that
 	// the testbed UART simulator is running on. See the argument used
 	// to construct `m_uart` in `./testbench/testbench.cpp`.
-	portForMockedSerialPort: 8001,
-
-	// Serial port address. This is passed to the SerialPort constructor.
-	// See https://serialport.io/docs/en/api-stream#path
-	serialPortAddress: 'COM10',
+	portForUart: 8001,
 
 	// Milliseconds to wait before giving up reading registers
 	readRegistersTimeout: 5000,

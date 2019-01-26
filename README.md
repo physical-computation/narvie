@@ -9,15 +9,13 @@ Harry Sarson (hds28), Pembroke College.
 
 ## Installation
 
-* Install `verilator` version 3.874 or greater (<https://www.veripool.org/wiki/verilator>)
-* Install `wget`, `gcc`, `libmpc`, `mpfr`, and `gmp`.
-* Install `Sunflower-toolchain`:
-  * Run `$ git submodule init && git submodule update && cd Sunflower-toolcahin`.
-  * Edit `Sunflower-toolchain/conf/setup.conf` and set `SUNFLOWERROOT` the the absolute path of the `Sunflower-toolchain` directory; `TARGET` to `riscv`; and `TARGET-ARCH` to `riscv32-elf`.
-  * In `Sunflower-toolchain/tools/source`, run `./downloads.sh`.
-  * In `Sunflower-toolchain/tools` run `make`.
 * Install node version 10 or greater (<https://nodejs.org/en/>)
 * `cd` into the `repl` subdirectory and run `npm install`.
+
+To run the RISC-V REPL in simulation, `verilator` is needed.
+To synthesise the verilog and flash to an FPGA `./progMDP` uses `yosys`, `arachne-pnr` and `icestorm`.
+However, other tools can also be used for sythensis.
+`nc` is needed to forward the serial port to a `TCP` port.
 
 ## Running
 

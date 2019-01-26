@@ -38,7 +38,7 @@ const assembleFormat = {
             (opcode & 0x7F);
     },
     U(opcode) {
-        return (rd, imm) => ((imm & 0xFFFFF) << 12) | ((rd & 0x1F) << 6) | (opcode & 0x7F);
+        return (rd, imm) => ((imm & 0xFFFFF) << 12) | ((rd & 0x1F) << 7) | (opcode & 0x7F);
     },
     J(opcode) {
         return (rd, imm) =>
@@ -65,7 +65,7 @@ const disassembleFormat = {
         return (rs1, rs2, imm) => `${mnemonic} x${rs1},${rs2},${imm}`
     },
     U(mnemonic) {
-        return (rd, imm) => `${mnemonic} x${rd},0x${imm}`
+        return (rd, imm) => `${mnemonic} x${rd},0x${imm.toString(16)}`
     },
     J(mnemonic) {
         return (rd, imm) => `${mnemonic} x${rd},${imm}`

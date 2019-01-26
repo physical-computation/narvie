@@ -6,7 +6,6 @@ const childProcess = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
-const Debug = require('debug');
 const chalk = require('chalk');
 const Table = require('@harrysarson/cli-table');
 const config = require('./config');
@@ -17,11 +16,7 @@ const {assemble} = require('./assemble');
 const SerialPort = require('./serialport');
 
 const writeFile = util.promisify(fs.writeFile);
-const readFile = util.promisify(fs.readFile);
 const mkdir = util.promisify(fs.mkdir);
-
-const debug = new Debug('process-repl');
-const exec = util.promisify(childProcess.exec);
 
 const getAbi = i => {
 	if (i === 0) {
@@ -105,118 +100,32 @@ const readEvalPrint = async ({instruction, serialport}) => {
 		return;
 	}
 
-	let myMachineCode;
-	let myDisassembly;
+	let machineCode;
+	let disassembly;
 	try {
-		let {binary, disassembly} = assemble(instruction);
+		let {binary, disassembly: d} = assemble(instruction);
 		const buffer = Buffer.alloc(4);
 		buffer.writeInt32LE(binary);
-		myMachineCode = [buffer];
-		myDisassembly = [disassembly];
+		machineCode = [buffer];
+		disassembly = [d];
 	} catch (error) {
 		if (error.assembleError) {
-			const dashes = Math.max(error.endIndex - error.startIndex, 0);
-			process.stderr.write(`Cannot assemble:
+			const errorMessage = `Cannot assemble:
     ${instruction}
 
 ${error}
 
 Expected: ${error.expected}
 Actual:   ${error.actual}
-`);
+`;
+			logProcessorError(messages.compiling(instruction), errorMessage);
 			return;
 		} else {
-			console.error(error);
-			process.exit();
+			throw error;
 		}
 	}
 
-	// Create assembly file:
-	try {
-		await writeFile(config.asPath, createAssembly(instruction));
-	} catch (error) {
-		console.error('Failed to write assembly to temporary file: ');
-		throw error;
-	}
-
-	highlightedLine(
-		process.stdout,
-		chalk.bgYellow.black,
-		messages.compiling(instruction),
-	);
-	resetCursor(process.stdout);
-
-	try {
-		const {stdout, stderr} = await exec(
-			config.makeCommand,
-			{
-				cwd: __dirname
-			}
-		);
-
-		debug(`stdout:\n${stdout}`);
-		debug(`stderr:\n${stderr}`);
-
-		if (stderr !== '') {
-			process.error.write(`\n  Possible error in assembler:\n  ${stderr.replace(/\n/g, '\n  ')}\n`);
-		}
-	} catch (error) {
-		highlightedLine(
-			process.stdout,
-			chalk.bgRed.white,
-			`${messages.compiling(instruction)} Error`,
-		);
-		let errorString = `${error}`;
-		if (error.stderr !== undefined) {
-			errorString = error.stderr.trim();
-		}
-		process.stdout.write(`\n  ${errorString.replace(/\n/g, '\n  ')}\n`);
-
-		highlightedLine(
-			process.stdout,
-			chalk.bgRed.white,
-			'Fix the instruction and try again.',
-		);
-		process.stdout.write('\n');
-		return;
-	}
-
-	highlightedLine(
-		process.stdout,
-		chalk.bgGreen.black,
-		`${messages.compiling(instruction)} Success`,
-	);
-	process.stdout.write('\n');
-
-	const machineCode = [];
-	try {
-		const binary = await readFile(config.machPath);
-		let i = 0;
-		while (i * 4 < binary.length) {
-			machineCode.push(binary.slice(i * 4, (i + 1) * 4));
-			i++;
-		}
-	} catch (error) {
-		console.error('Failed to read machine code from temporary file:');
-		throw error;
-	}
-
-	let disassembly = [];
-	try {
-		disassembly = await readFile(config.disassemblyPath, 'utf8');
-		disassembly = disassembly
-			.split('\n')
-			.slice(0, -1)
-			.map(text => text.replace('\t', ' '));
-	} catch (error) {
-		console.error('Failed to read disassembly temporary file:');
-		throw error;
-	}
-	assert.strictEqual(disassembly.length, machineCode.length);
-	assert.strictEqual(machineCode[machineCode.length - 1].length, 4);
-	assert.deepEqual(machineCode, myMachineCode);
-
-	const binaryInstructions = myMachineCode.map(inst =>
+	const binaryInstructions = machineCode.map(inst =>
 		[...inst]
 			.reverse()
 			.map(x => x.toString(2).padStart(8, '0'))
@@ -230,14 +139,14 @@ Actual:   ${error.actual}
 		}
 	});
 
-	for (let i = 0; i < myDisassembly.length; ++i) {
-		inputTable.push([myDisassembly[i], binaryInstructions[i]]);
+	for (let i = 0; i < disassembly.length; ++i) {
+		inputTable.push([disassembly[i], binaryInstructions[i]]);
 	}
 
 	process.stdout.write(`${inputTable}\n`);
 	let regfile;
 
-	for (let i = 0; i < myMachineCode.length; ++i) {
+	for (let i = 0; i < machineCode.length; ++i) {
 		highlightedLine(
 			process.stdout,
 			chalk.bgYellow.black,
@@ -246,16 +155,16 @@ Actual:   ${error.actual}
 		resetCursor(process.stdout);
 
 		try {
-			portWrite(serialport, myMachineCode[i]);
+			portWrite(serialport, machineCode[i]);
 		} catch (error) {
-			logProcessorError(messages.writing(myDisassembly[i]), error);
+			logProcessorError(messages.writing(disassembly[i]), error);
 			return;
 		}
 
 		highlightedLine(
 			process.stdout,
 			chalk.bgGreen.black,
-			`${messages.writing(myDisassembly[i])} Success`,
+			`${messages.writing(disassembly[i])} Success`,
 		);
 		process.stdout.write('\n\n');
 		highlightedLine(

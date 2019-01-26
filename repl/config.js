@@ -34,12 +34,4 @@ module.exports = Object.freeze({
 
 	// Set the file used to log bytes received by the serial port
 	serialportLogPath: path.join(__dirname, 'logs', 'serialport'),
-
-	// Set the files used to generate binary instructions, these
-	// paths must match those set in `./Makefile`. See `./Makefile`
-	// for explanations
-	compilerFileDir,
-	asPath: path.join(compilerFileDir, 'a.S'),
-	machPath: path.join(compilerFileDir, 'machine-code'),
-	disassemblyPath: path.join(compilerFileDir, 'd.S')
 });

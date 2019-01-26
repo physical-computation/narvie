@@ -240,8 +240,8 @@ exports.assemble = (input) => {
             'Could not parse the assembly mnenomic.',
             {
                 instruction: string,
-                expected: 'assembly mnemonic',
-                actual: mnemonic,
+                expected: 'an assembly mnemonic',
+                actual: `'${mnemonic}'`,
             },
         )
     }

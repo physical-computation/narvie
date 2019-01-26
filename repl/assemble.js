@@ -41,6 +41,7 @@ const getRegister = string => {
     } else if (string == 'tp') {
         return 4;
     }
+    return null;
 }
 
 const getImmediate = string => {

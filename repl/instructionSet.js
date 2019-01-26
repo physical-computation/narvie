@@ -69,6 +69,9 @@ const disassembleFormat = {
     },
     J(mnemonic) {
         return (rd, imm) => `${mnemonic} x${rd},${imm}`
+    },
+    SHIFT(mnemonic) {
+        return (rd, rs1, shamt) => `${mnemonic} x${rd},x${rs1},${shamt}`
     }
 }
 
@@ -196,17 +199,17 @@ const baseInstructions = Object.freeze({
     SLLI: {
         args: ['REGISTER', 'REGISTER', 'SHAMT'],
         assemble: assembleFormat.R(0b0010011, 0b001, 0b0000000),
-        disassemble: disassembleFormat.R('slli'),
+        disassemble: disassembleFormat.SHIFT('slli'),
     },
     SRLI: {
         args: ['REGISTER', 'REGISTER', 'SHAMT'],
         assemble: assembleFormat.R(0b0010011, 0b101, 0b0000000),
-        disassemble: disassembleFormat.R('srli'),
+        disassemble: disassembleFormat.SHIFT('srli'),
     },
     SRAI: {
         args: ['REGISTER', 'REGISTER', 'SHAMT'],
         assemble: assembleFormat.R(0b0010011, 0b101, 0b0100000),
-        disassemble: disassembleFormat.R('srai'),
+        disassemble: disassembleFormat.SHIFT('srai'),
     },
     ADD: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],

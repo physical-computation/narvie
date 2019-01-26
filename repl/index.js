@@ -12,6 +12,7 @@ const Table = require('@harrysarson/cli-table');
 const config = require('./config');
 
 const {portWrite, portReadRegisters} = require('./eval-instruction');
+const {assemble} = require('./assemble');
 
 const SerialPort = require('./serialport');
 
@@ -104,6 +105,32 @@ const readEvalPrint = async ({instruction, serialport}) => {
 		return;
 	}
 
+	let myMachineCode;
+	let myDisassembly;
+	try {
+		let {binary, disassembly} = assemble(instruction);
+		const buffer = Buffer.alloc(4);
+		buffer.writeInt32LE(binary);
+		myMachineCode = [buffer];
+		myDisassembly = [disassembly];
+	} catch (error) {
+		if (error.assembleError) {
+			const dashes = Math.max(error.endIndex - error.startIndex, 0);
+			process.stderr.write(`Cannot assemble:
+    ${instruction}
+
+${error}
+
+Expected: ${error.expected}
+Actual:   ${error.actual}
+`);
+			return;
+		} else {
+			console.error(error);
+			process.exit();
+		}
+	}
+
 	// Create assembly file:
 	try {
 		await writeFile(config.asPath, createAssembly(instruction));
@@ -187,8 +214,9 @@ const readEvalPrint = async ({instruction, serialport}) => {
 	}
 	assert.strictEqual(disassembly.length, machineCode.length);
 	assert.strictEqual(machineCode[machineCode.length - 1].length, 4);
+	assert.deepEqual(machineCode, myMachineCode);
 
-	const binaryInstructions = machineCode.map(inst =>
+	const binaryInstructions = myMachineCode.map(inst =>
 		[...inst]
 			.reverse()
 			.map(x => x.toString(2).padStart(8, '0'))
@@ -202,14 +230,14 @@ const readEvalPrint = async ({instruction, serialport}) => {
 		}
 	});
 
-	for (let i = 0; i < disassembly.length; ++i) {
-		inputTable.push([disassembly[i], binaryInstructions[i]]);
+	for (let i = 0; i < myDisassembly.length; ++i) {
+		inputTable.push([myDisassembly[i], binaryInstructions[i]]);
 	}
 
 	process.stdout.write(`${inputTable}\n`);
 	let regfile;
 
-	for (let i = 0; i < machineCode.length; ++i) {
+	for (let i = 0; i < myMachineCode.length; ++i) {
 		highlightedLine(
 			process.stdout,
 			chalk.bgYellow.black,
@@ -218,16 +246,16 @@ const readEvalPrint = async ({instruction, serialport}) => {
 		resetCursor(process.stdout);
 
 		try {
-			portWrite(serialport, machineCode[i]);
+			portWrite(serialport, myMachineCode[i]);
 		} catch (error) {
-			logProcessorError(messages.writing(disassembly[i]), error);
+			logProcessorError(messages.writing(myDisassembly[i]), error);
 			return;
 		}
 
 		highlightedLine(
 			process.stdout,
 			chalk.bgGreen.black,
-			`${messages.writing(disassembly[i])} Success`,
+			`${messages.writing(myDisassembly[i])} Success`,
 		);
 		process.stdout.write('\n\n');
 		highlightedLine(

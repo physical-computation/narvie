@@ -3,10 +3,6 @@
 A Read Eval Print Loop (REPL) for RISC-V instructions.
 Only UNIX systems are supported.
 
-## Author
-
-Harry Sarson (hds28), Pembroke College.
-
 ## Installation
 
 * Install node version 10 or greater (<https://nodejs.org/en/>)

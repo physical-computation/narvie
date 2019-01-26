@@ -1,7 +1,8 @@
-# RISCV REPL
+# `narvie`
 
 A Read Eval Print Loop (REPL) for RISC-V instructions.
-Only UNIX systems are supported.
+Only UNIX systems have been tested.
+`narvie` stands for native RISC-V instruction evaluator.
 
 ## Installation
 

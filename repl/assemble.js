@@ -4,7 +4,7 @@ const instructionSet = require('./instructionSet');
 const getRegister = string => {
     if (string[0] === 'x') {
         const num = Number(string.substr(1));
-        if (Number.isNaN(num) && num < 0 && num >= 32) {
+        if (Number.isNaN(num) || num < 0 || num >= 32) {
             return null;
         } else {
             return num;
@@ -21,21 +21,21 @@ const getRegister = string => {
         return 4;
     } else if (string[0] == 'a') {
         const num = Number(string.substr(1));
-        if (Number.isNaN(num) && num < 0 && num >= 8) {
+        if (Number.isNaN(num) || num < 0 || num >= 8) {
             return null;
         } else {
             return num + 10;
         }
     } else if (string[0] == 's') {
         const num = Number(string.substr(1));
-        if (Number.isNaN(num) && num < 0 && num >= 12) {
+        if (Number.isNaN(num) || num < 0 || num >= 12) {
             return null;
         } else {
             return num + (num < 2 ? 8 : 16);
         }
     } else if (string[0] == 't') {
         const num = Number(string.substr(1));
-        if (Number.isNaN(num) && num < 0 && num >= 7) {
+        if (Number.isNaN(num) || num < 0 || num >= 7) {
             return null;
         } else {
             return num + (num < 3 ? 5 : 25);
@@ -109,7 +109,7 @@ const parseParts = ({string, parts, schema}) => {
             case 'REGISTER': {
                 const reg = getRegister(part);
                 if (reg === null) {
-                    throw error('register');
+                    throw error('a register');
                 }
                 return reg;
             };
@@ -129,7 +129,7 @@ const parseParts = ({string, parts, schema}) => {
                     if (part[0] === '0') {
                         throw error(`immediate in decimal, binary or hex form`);
                     }
-                    throw error(`immediate`);
+                    throw error(`an immediate`);
                 }
                 if (imm < (-1 << 11) || imm >= (1 << 11)) {
                     throw error(`immediate in range -2048..2047`);

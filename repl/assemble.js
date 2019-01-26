@@ -9,6 +9,16 @@ const getRegister = string => {
         } else {
             return num;
         }
+    } else if (string == 'zero') {
+        return 0;
+    } else if (string == 'ra') {
+        return 1;
+    } else if (string == 'sp') {
+        return 2;
+    } else if (string == 'gp') {
+        return 3;
+    } else if (string == 'tp') {
+        return 4;
     } else if (string[0] == 'a') {
         const num = Number(string.substr(1));
         if (Number.isNaN(num) && num < 0 && num >= 8) {
@@ -30,16 +40,6 @@ const getRegister = string => {
         } else {
             return num + (num < 3 ? 5 : 25);
         }
-    } else if (string == 'zero') {
-        return 0;
-    } else if (string == 'ra') {
-        return 1;
-    } else if (string == 'sp') {
-        return 2;
-    } else if (string == 'gp') {
-        return 3;
-    } else if (string == 'tp') {
-        return 4;
     }
     return null;
 }
@@ -257,8 +257,6 @@ exports.assemble = (input) => {
         partStartIndex: firstSpaceIndex + 1,
         schema: instruction.args
     });
-
-    console.log("as", ...parts);
 
     return {
         binary: instruction.assemble(...parts),

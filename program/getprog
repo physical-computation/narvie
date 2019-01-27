@@ -4,5 +4,5 @@
 
 srec_decoder/srec_decode led.sr
 
-cp program.hex ../verilog/program.hex
-cp data.hex ../verilog/data.hex
+cp program.hex ../submodule/verilog/program.hex
+cp data.hex ../submodule/verilog/data.hex

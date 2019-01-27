@@ -1,5 +1,0 @@
-#!/bin/bash
-
-iverilog ../verilog/adder.v adder_sim.v
-vvp a.out
-gtkwave adder.vcd

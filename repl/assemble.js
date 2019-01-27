@@ -258,8 +258,12 @@ exports.assemble = (input) => {
         schema: instruction.args
     });
 
-    return {
-        binary: instruction.assemble(...parts),
+    const buffer = Buffer.alloc(4);
+    buffer.writeInt32LE(instruction.assemble(...parts))
+
+    return [{
+        binary: buffer,
         disassembly: instruction.disassemble(...parts),
-    };
+        format: instruction.format,
+    }];
 }

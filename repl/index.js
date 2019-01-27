@@ -52,6 +52,33 @@ const getAbi = i => {
 	throw new Error('register index is outside valid range');
 };
 
+/* narvie will use these as headers when displaying binary.
+ */
+const formatHeaders = {
+	R: ['funct7', 'rs2', 'rs1', 'funct3', 'rd', 'opcode'],
+	I: ['imm[11:0]', 'rs1', 'funct3', 'rd', 'opcode'],
+	'I-SHIFT': ['imm[11:5]', 'shamt', 'rs1', 'funct3', 'rd', 'opcode'],
+	S: ['imm[15:5]', 'rs2', 'rs1', 'funct3', 'imm[4:0]', 'opcode'],
+	B: ['imm[12|10:5]', 'rs2', 'rs1', 'funct3', 'imm[4:1|11]', 'opcode'],
+	U: ['imm[31:12]', 'rd', 'opcode'],
+	J: ['imm[20|10:1|11|19:12]', 'rd', 'opcode'],
+};
+
+/* narvie will split the instruction into blocks of binary.
+ * These arrays indicate how wide each block should be.
+ *
+ * It is assumed in the code that these are positive integers.
+ */
+const binaryBlockWidths = {
+	R: [7, 5, 5, 3, 5, 7],
+	I: [12, 5, 3, 5, 7],
+	'I-SHIFT': [7, 5, 5, 3, 5, 7],
+	S: [7, 5, 5, 3, 5, 7],
+	B: [7, 5, 5, 3, 5, 7],
+	U: [20, 5, 7],
+	J: [20, 5, 7],
+}
+
 const question = (rl, prompt) => new Promise(resolve => {
 	rl.question(prompt, resolve);
 });
@@ -100,14 +127,9 @@ const readEvalPrint = async ({instruction, serialport}) => {
 		return;
 	}
 
-	let machineCode;
-	let disassembly;
+	let assembled = [];
 	try {
-		let {binary, disassembly: d} = assemble(instruction);
-		const buffer = Buffer.alloc(4);
-		buffer.writeInt32LE(binary);
-		machineCode = [buffer];
-		disassembly = [d];
+		assembled = assemble(instruction);
 	} catch (error) {
 		if (error.assembleError) {
 			const errorMessage = `Cannot assemble:
@@ -125,28 +147,47 @@ Actual:   ${error.actual}
 		}
 	}
 
-	const binaryInstructions = machineCode.map(inst =>
-		[...inst]
-			.reverse()
-			.map(x => x.toString(2).padStart(8, '0'))
-			.join(' ')
-	);
+	if (assembled.length > 1) {
+		throw new Error("Cannot support pseudo ops that expand to more than one instruction");
+	}
 
 	const inputTable = new Table({
-		head: ['Instruction', 'Binary'],
+		head: ['Instruction', ...formatHeaders[assembled[0].format]],
 		style: {
 			head: ['bgWhite', 'black']
-		}
+		},
+		colAligns: ['left', ...formatHeaders[assembled[0].format].map(_ => 'middle')],
 	});
 
-	for (let i = 0; i < disassembly.length; ++i) {
-		inputTable.push([disassembly[i], binaryInstructions[i]]);
+
+	for (const {binary, disassembly, format} of assembled) {
+		const {binarySections, latestBinarySection} = [...binary]
+			.reverse()
+			.map(x => x.toString(2).padStart(8, '0'))
+			.reduce((arr, byte) => {arr.push(...byte); return arr;}, [])
+			.reduce(
+				(acc, bit) => {
+					acc.latestBinarySection.push(bit);
+					acc.indexWithinSection += 1;
+
+					if (acc.indexWithinSection === binaryBlockWidths[format][acc.sectionIndex]) {
+						acc.binarySections.push(acc.latestBinarySection.join(''));
+						acc.sectionIndex += 1;
+						acc.indexWithinSection = 0;
+						acc.latestBinarySection = [];
+					}
+
+					return acc;;
+				},
+				{sectionIndex: 0, indexWithinSection: 0, binarySections: [], latestBinarySection: []}
+			);
+		inputTable.push([disassembly, ...binarySections]);
 	}
 
 	process.stdout.write(`${inputTable}\n`);
 	let regfile;
 
-	for (let i = 0; i < machineCode.length; ++i) {
+	for (const {binary, disassembly} of assembled) {
 		highlightedLine(
 			process.stdout,
 			chalk.bgYellow.black,
@@ -155,16 +196,16 @@ Actual:   ${error.actual}
 		resetCursor(process.stdout);
 
 		try {
-			portWrite(serialport, machineCode[i]);
+			portWrite(serialport, binary);
 		} catch (error) {
-			logProcessorError(messages.writing(disassembly[i]), error);
+			logProcessorError(messages.writing(disassembly), error);
 			return;
 		}
 
 		highlightedLine(
 			process.stdout,
 			chalk.bgGreen.black,
-			`${messages.writing(disassembly[i])} Success`,
+			`${messages.writing(disassembly)} Success`,
 		);
 		process.stdout.write('\n\n');
 		highlightedLine(
@@ -314,6 +355,7 @@ const run = async rl => {
 			`${error} Failed`,
 		);
 		process.stdout.write('\n');
+		console.error(error);
 	}
 };
 

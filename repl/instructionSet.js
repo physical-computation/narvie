@@ -46,7 +46,7 @@ const assembleFormat = {
             ((imm & 0x0003FE) << 20) | // imm[10:1], inst[30:21]
             ((imm & 0x000800) << 9) |  // imm[11], inst[20]
             ((imm & 0x0FF000)) | // imm[19:12], inst[19:12]
-            ((rd & 0x1F) << 6) |
+            ((rd & 0x1F) << 7) |
             (opcode & 0x7F);
     }
 };
@@ -80,193 +80,232 @@ const baseInstructions = Object.freeze({
         args: ['REGISTER', 'U IMMEDIATE'],
         assemble: assembleFormat.U(0b0110111),
         disassemble: disassembleFormat.U('lui'),
+        format: 'U',
     },
     AUIPC: {
         args: ['REGISTER', 'U IMMEDIATE'],
         assemble: assembleFormat.U(0b0010111),
         disassemble: disassembleFormat.U('auipc'),
+        format: 'U',
     },
     JAL: {
         args: ['REGISTER', 'J IMMEDIATE'],
         assemble: assembleFormat.J(0b1101111),
         disassemble: disassembleFormat.J('jal'),
+        format: 'J',
     },
     JALR: {
         args: ['REGISTER', 'REGISTER', 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b1100111, 0b000),
         disassemble: disassembleFormat.I('jalr'),
+        format: 'I',
     },
     BEQ: {
         args: ['REGISTER', `REGISTER`, 'B IMMEDIATE'],
         assemble: assembleFormat.B(0b1100011, 0b000),
         disassemble: disassembleFormat.B('beq'),
+        format: 'B',
     },
     BNE: {
         args: ['REGISTER', `REGISTER`, 'B IMMEDIATE'],
         assemble: assembleFormat.B(0b1100011, 0b001),
         disassemble: disassembleFormat.B('bne'),
+        format: 'B',
     },
     BLT: {
         args: ['REGISTER', `REGISTER`, 'B IMMEDIATE'],
         assemble: assembleFormat.B(0b1100011, 0b100),
         disassemble: disassembleFormat.B('blt'),
+        format: 'B',
     },
     BGE: {
         args: ['REGISTER', `REGISTER`, 'B IMMEDIATE'],
         assemble: assembleFormat.B(0b1100011, 0b101),
         disassemble: disassembleFormat.B('bge'),
+        format: 'B',
     },
     BLTU: {
         args: ['REGISTER', `REGISTER`, 'B IMMEDIATE'],
         assemble: assembleFormat.B(0b1100011, 0b110),
         disassemble: disassembleFormat.B('bltu'),
+        format: 'B',
     },
     BGEU: {
         args: ['REGISTER', `REGISTER`, 'B IMMEDIATE'],
         assemble: assembleFormat.B(0b1100011, 0b111),
         disassemble: disassembleFormat.B('bgeu'),
+        format: 'B',
     },
     LB: {
         args: ['REGISTER', `REGISTER`, 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0000011, 0b000),
         disassemble: disassembleFormat.I('lb'),
+        format: 'I',
     },
     LH: {
         args: ['REGISTER', `REGISTER`, 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0000011, 0b001),
         disassemble: disassembleFormat.I('lh'),
+        format: 'I',
     },
     LW: {
         args: ['REGISTER', `REGISTER`, 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0000011, 0b010),
         disassemble: disassembleFormat.I('lw'),
+        format: 'I',
     },
     LBU: {
         args: ['REGISTER', `REGISTER`, 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0000011, 0b100),
         disassemble: disassembleFormat.I('lbu'),
+        format: 'I',
     },
     LHU: {
         args: ['REGISTER', `REGISTER`, 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0000011, 0b101),
         disassemble: disassembleFormat.I('lhu'),
+        format: 'I',
     },
     SB: {
         args: ['REGISTER', 'MEMORY LOCATION'],
         assemble: assembleFormat.S(0b0100011, 0b000),
         disassemble: disassembleFormat.S('sb'),
+        format: 'S',
     },
     SH: {
         args: ['REGISTER', 'MEMORY LOCATION'],
         assemble: assembleFormat.S(0b0100011, 0b001),
         disassemble: disassembleFormat.S('sh'),
+        format: 'S',
     },
     SW: {
         args: ['REGISTER', 'MEMORY LOCATION'],
         assemble: assembleFormat.S(0b0100011, 0b010),
         disassemble: disassembleFormat.S('sw'),
+        format: 'S',
     },
     ADDI: {
         args: ['REGISTER', 'REGISTER', 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0010011, 0b000),
         disassemble: disassembleFormat.I('addi'),
+        format: 'I',
     },
     SLTI: {
         args: ['REGISTER', 'REGISTER', 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0010011, 0b010),
         disassemble: disassembleFormat.I('slti'),
+        format: 'I',
     },
     SLTIU: {
         args: ['REGISTER', 'REGISTER', 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0010011, 0b011),
         disassemble: disassembleFormat.I('sltiu'),
+        format: 'I',
     },
     XORI: {
         args: ['REGISTER', 'REGISTER', 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0010011, 0b100),
         disassemble: disassembleFormat.I('xori'),
+        format: 'I',
     },
     ORI: {
         args: ['REGISTER', 'REGISTER', 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0010011, 0b110),
         disassemble: disassembleFormat.I('ori'),
+        format: 'I',
     },
     ANDI: {
         args: ['REGISTER', 'REGISTER', 'I IMMEDIATE'],
         assemble: assembleFormat.I(0b0010011, 0b111),
         disassemble: disassembleFormat.I('andi'),
+        format: 'I',
     },
     SLLI: {
         args: ['REGISTER', 'REGISTER', 'SHAMT'],
         assemble: assembleFormat.R(0b0010011, 0b001, 0b0000000),
         disassemble: disassembleFormat.SHIFT('slli'),
+        format: 'I-SHIFT',
+
     },
     SRLI: {
         args: ['REGISTER', 'REGISTER', 'SHAMT'],
         assemble: assembleFormat.R(0b0010011, 0b101, 0b0000000),
         disassemble: disassembleFormat.SHIFT('srli'),
+        format: 'I-SHIFT',
     },
     SRAI: {
         args: ['REGISTER', 'REGISTER', 'SHAMT'],
         assemble: assembleFormat.R(0b0010011, 0b101, 0b0100000),
         disassemble: disassembleFormat.SHIFT('srai'),
+        format: 'I-SHIFT',
     },
     ADD: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b000, 0b0000000),
         disassemble: disassembleFormat.R('add'),
+        format: 'R',
     },
     SUB: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b000, 0b0100000),
         disassemble: disassembleFormat.R('sub'),
+        format: 'R',
     },
     SLL: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b001, 0b0000000),
         disassemble: disassembleFormat.R('sll'),
+        format: 'R',
     },
     SLT: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b010, 0b0000000),
         disassemble: disassembleFormat.R('slt'),
+        format: 'R',
     },
     SLTU: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b011, 0b0000000),
         disassemble: disassembleFormat.R('sltu'),
+        format: 'R',
     },
     XOR: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b100, 0b0000000),
         disassemble: disassembleFormat.R('xor'),
+        format: 'R',
     },
     SRL: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b101, 0b0000000),
         disassemble: disassembleFormat.R('srl'),
+        format: 'R',
     },
     SRA: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b101, 0b0100000),
         disassemble: disassembleFormat.R('sra'),
+        format: 'R',
     },
     OR: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b110, 0b0000000),
         disassemble: disassembleFormat.R('or'),
+        format: 'R',
     },
     AND: {
         args: ['REGISTER', 'REGISTER', 'REGISTER'],
         assemble: assembleFormat.R(0b0110011, 0b111, 0b0000000),
         disassemble: disassembleFormat.R('and'),
+        format: 'R',
     },
 });
 
-const psuedoOp = ({assemble, disassemble}, args, mappingFunc) => ({
+const psuedoOp = ({assemble, disassemble, format}, args, mappingFunc) => ({
     assemble: (...args) => assemble(...mappingFunc(...args)),
     disassemble: (...args) => disassemble(...mappingFunc(...args)),
-    args
+    args,
+    format
 });
 
 const reg0 = 0;

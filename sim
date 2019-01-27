@@ -8,7 +8,7 @@ cd submodule
 verilator \
 -Wall \
 --cc ../testbench/top_sim.v verilog/adder.v verilog/cpu.v verilog/mux2to1.v verilog/alu_control.v verilog/pipeline_registers.v verilog/alu.v verilog/program_counter.v verilog/branch_decide.v verilog/forwarding_unit.v verilog/branch_predictor.v verilog/imm_gen.v verilog/control_unit.v ../main.v verilog/CSR_iCE40UP5K.v ../uart_regfile.v verilog/dataMem_mask_gen.v uart/baudgen_tx.v uart/uart_tx.v uart/baudgen_rx.v uart/uart_rx.v uart/baudgen.vh \
-simulation/data_memory.v config.vlt \
+simulation/data_memory.v config.vlt ../rx_instruction.v \
 -Iuart \
 --exe testbench/main.cpp testbench/testbench.cpp testbench/uartsim.cpp \
 -Mdir ../verilator_sim \

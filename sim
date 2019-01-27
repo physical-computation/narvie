@@ -8,4 +8,4 @@ make -j -C ../verilator_sim -f Vtop_sim.mk Vtop_sim
 
 ../verilator_sim/Vtop_sim
 
-# gtkwave ../verilator_sim/Vtop_sim.vcd
+gtkwave ../verilator_sim/Vtop_sim.vcd

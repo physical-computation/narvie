@@ -1,0 +1,5 @@
+verilator_sim/
+
+*.asc
+*.bin
+*.blif

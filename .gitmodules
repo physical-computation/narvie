@@ -1,0 +1,3 @@
+[submodule "narvie"]
+	path = RV32I_common
+	url = https://github.com/harrysarson/narvie

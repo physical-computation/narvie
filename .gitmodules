@@ -2,3 +2,6 @@
 	path = Sunflower-toolchain
 	url = git@github.com:rjlv2/Sunflower-toolchain.git
 	branch = master
+[submodule "RV32I-common"]
+	path = RV32I_common
+	url = https://github.com/harrysarson/narvie

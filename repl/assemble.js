@@ -212,9 +212,6 @@ const parseParts = ({string, parts, schema}) => {
                 if (imm < 0 || imm >= (1 << 5)) {
                     throw error(`immediate in range 0..31`);
                 }
-                if (imm & 1 === 1) {
-                    throw error(`even immediate`);
-                }
                 return imm;
             };
             default: {

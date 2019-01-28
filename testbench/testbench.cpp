@@ -9,8 +9,10 @@
 TESTBENCH::TESTBENCH()
 	: m_uart(8001), m_core(), m_tickcount(0),
 	  m_is_evaluating(false), m_is_tx(false),
-	  m_rxStart(0), m_rxEnd(0),
-	  m_txStart(0), m_txEnd(0)
+	  m_tx_byte_count(0),
+	  m_rxStart(0),
+	  m_evalStart(0),
+	  m_txStart(0)
 {
 	// attempts baud rate of 115200
 	// guessed from source code of uartsim.cpp
@@ -26,33 +28,32 @@ void TESTBENCH::tick(void)
 
 	if (m_is_evaluating)
 	{
-		if (!m_core.rx)
+		if (m_core.v__DOT__m__DOT__register_files__DOT__instruction_rcv)
 		{
-			m_rxEnd = m_tickcount + 1;
+			m_evalStart = m_tickcount;
 		}
 
-		if (!m_core.tx)
+		if (m_core.v__DOT__m__DOT__register_files__DOT__send_regfile)
 		{
-			if (!m_is_tx)
-			{
-				m_is_tx = true;
-				m_txStart = m_tickcount;
-			}
-			m_txEnd = m_tickcount + 1;
+			m_txStart = m_tickcount;
+			m_is_tx = true;
 		}
 
-		if (m_is_tx && m_tickcount > m_txEnd && m_tickcount - m_txEnd > 100000)
+		if (m_is_tx && m_core.v__DOT__m__DOT__register_files__DOT__tx_ready)
 		{
+			m_tx_byte_count += 1;
+		}
+
+		if (m_tx_byte_count == 128)
+		{
+			printf("RX from %9lu, for %4lu cycles. ", m_rxStart, m_evalStart - m_rxStart);
+			printf("EX from %9lu, for %2lu cycles. ", m_evalStart, m_txStart - m_evalStart);
+			printf("TX from %9lu, for %6lu cycles. ", m_txStart, m_tickcount - m_txStart);
+			printf(" In total this is %6lu cycles.\n", m_tickcount - m_rxStart);
+
 			m_is_evaluating = false;
+			m_tx_byte_count = 0;
 			m_is_tx = false;
-			printf("RX started at %9lu, for %4lu cycles. \
-TX started at %9lu, for %6lu cycles. \
-This suggests execution took %2lu cycles. \
-In total this is %6lu cycles.\n",
-				   m_rxStart, m_rxEnd - m_rxStart,
-				   m_txStart, m_txEnd - m_txStart,
-				   m_txStart - m_rxEnd,
-				   m_txEnd - m_rxStart);
 		}
 	}
 	else

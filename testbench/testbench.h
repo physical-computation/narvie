@@ -11,11 +11,11 @@ class TESTBENCH
 	UARTSIM m_uart;
 
 	bool m_is_evaluating;
+	unsigned long m_tx_byte_count;
 	bool m_is_tx;
 	unsigned long m_rxStart;
-	unsigned long m_rxEnd;
+	unsigned long m_evalStart;
 	unsigned long m_txStart;
-	unsigned long m_txEnd;
 
   public:
 	TESTBENCH();

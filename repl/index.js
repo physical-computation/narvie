@@ -343,7 +343,9 @@ const run = async rl => {
 		// 	serialport: serialport,
 		// });
 		while (!portClosed) {
-			const input = 'add x1, x2, x1'; // (await question(rl, `${config.prompt} `)).trim();
+			// await new Promise(resolve => setTimeout(resolve, 100));
+			// const input = 'add x1, x2, x1';
+			const input = (await question(rl, `${config.prompt} `)).trim();
 			if (portClosed) {
 				break;
 			}
@@ -376,7 +378,6 @@ const run = async rl => {
 			await writeFile(__dirname + '/logs/timing.txt', `${receiveRegfileTime[0] - sendAssemblyTime[0]}\n`, {
 				flag: 'a+'
 			});
-			await new Promise(resolve => setTimeout(resolve, 100));
 		}
 		process.stdout.write('\n');
 		highlightedLine(

@@ -10,6 +10,13 @@ class TESTBENCH
 	Vtop_sim m_core;
 	UARTSIM m_uart;
 
+	bool m_is_evaluating;
+	bool m_is_tx;
+	unsigned long m_rxStart;
+	unsigned long m_rxEnd;
+	unsigned long m_txStart;
+	unsigned long m_txEnd;
+
   public:
 	TESTBENCH();
 

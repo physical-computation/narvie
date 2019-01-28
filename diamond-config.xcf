@@ -19,12 +19,13 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>C:/Users/harry/psm/RV32I_iCE40/rv32i_ice40MDP.bin</File>
-			<FileTime>01/22/19 14:35:32</FileTime>
+			<File>C:/Users/harry/psm/narvie/rv32i_ice40MDP.bin</File>
+			<FileTime>01/28/19 09:42:02</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
 				<IOState>HighZ</IOState>
+				<SVFProcessor>SVF Processor</SVFProcessor>
 				<AccessMode>CRAM</AccessMode>
 			</Option>
 		</Device>

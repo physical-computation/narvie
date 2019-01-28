@@ -66,7 +66,9 @@ const getImmediate = string => {
     }
 
     let immediate = parseInt(numeric, base);
-    if (Number.isNaN(immediate) || immediate.toString(base) !== numeric) {
+    console.log(immediate.toString(base));
+    if (Number.isNaN(immediate)
+        || immediate.toString(base).toLowerCase() !== numeric.toLowerCase()) {
         return null;
     } else {
         return immediate;
@@ -76,7 +78,7 @@ const getImmediate = string => {
 
 class AssembleError extends Error {
 
-    constructor(which, {instruction, expected, actual, startIndex, endIndex}) {
+    constructor(which, {instruction, expected, actual}) {
         super(which);
 
         super.assembleError = true;
@@ -201,7 +203,7 @@ const parseParts = ({string, parts, schema}) => {
                 }
                 return imm;
             };
-            case 'SHAMT': {
+            case 'U IMMEDIATE 5': {
                 const imm = getImmediate(part);
                 if (imm === null) {
                     if (part[0] === '0') {
@@ -213,6 +215,62 @@ const parseParts = ({string, parts, schema}) => {
                     throw error(`immediate in range 0..31`);
                 }
                 return imm;
+            };
+            case 'FENCE': {
+                let copy = [...part];
+                let fenceArg = 0;
+                for (const char of 'iorw') {
+                    fenceArg <<= 1;
+                    if (copy.includes(char)) {
+                        let firstChar;
+                        [firstChar, ...copy] = [...copy];
+                        if (firstChar === char) {
+                            fenceArg |= 1;
+                        } else {
+                            throw error(`one or more of the characters 'iorw' in that order.`);
+                        }
+                    }
+                }
+                if (copy.length > 0) {
+                    throw error(`only the characters 'iorw'.`);
+                }
+
+                return fenceArg;
+            };
+            case 'CSR IMMEDIATE': {
+                switch (part) {
+                    case 'cycle': {
+                        return 0xC00;
+                    }
+                    case 'time': {
+                        return 0xC01;
+                    }
+                    case 'instret': {
+                        return 0xC02;
+                    }
+                    case 'cycleh': {
+                        return 0xC80;
+                    }
+                    case 'timeh': {
+                        return 0xC81;
+                    }
+                    case 'instret': {
+                        return 0xC82;
+                    }
+                    default: {
+                        const imm = getImmediate(part);
+                        if (imm === null) {
+                            if (part[0] === '0') {
+                                throw error(`immediate in decimal, binary or hex form`);
+                            }
+                            throw error(`immediate`);
+                        }
+                        if (imm < 0 || imm >= (1 << 12)) {
+                            throw error(`immediate in range 0..4095`);
+                        }
+                        return imm;
+                    }
+                }
             };
             default: {
                 throw new Error(`Missing case statement for: ${schema[i]}`);

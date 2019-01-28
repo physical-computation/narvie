@@ -1,4 +1,12 @@
 
+const assembleI = (opcode, funct3) => (rd, rs1, imm) =>
+    ((imm & 0xFFF) << 20) | // imm[11:0], inst[31:20]
+    ((rs1 & 0x1F) << 15) |
+    ((funct3 & 0b111) << 12) |
+    ((rd & 0x1F) << 7) |
+    (opcode & 0x7F);
+
+
 const assembleFormat = {
     R(opcode, funct3, funct7) {
         return (rd, rs1, rs2) =>
@@ -9,14 +17,7 @@ const assembleFormat = {
             ((rd & 0x1F) << 7) |
             (opcode & 0x7F);
     },
-    I(opcode, funct3) {
-        return (rd, rs1, imm) =>
-            ((imm & 0xFFF) << 20) | // imm[11:0], inst[31:20]
-            ((rs1 & 0x1F) << 15) |
-            ((funct3 & 0b111) << 12) |
-            ((rd & 0x1F) << 7) |
-            (opcode & 0x7F);
-    },
+    I: assembleI,
     S(opcode, funct3) {
         return (rs2, [rs1, imm]) =>
             ((imm & 0b111111100000) << 20) | // imm[11:5], inst[31:25]
@@ -48,6 +49,11 @@ const assembleFormat = {
             ((imm & 0x0FF000)) | // imm[19:12], inst[19:12]
             ((rd & 0x1F) << 7) |
             (opcode & 0x7F);
+    },
+    CSR(opcode, funct3) {
+        let asI = assembleI(opcode, funct3);
+        return (rd, csr, rs1) =>
+            asI(rd, rs1, csr);
     }
 };
 
@@ -70,8 +76,11 @@ const disassembleFormat = {
     J(mnemonic) {
         return (rd, imm) => `${mnemonic} x${rd},${imm}`
     },
-    SHIFT(mnemonic) {
-        return (rd, rs1, shamt) => `${mnemonic} x${rd},x${rs1},${shamt}`
+    CSR(mnemonic) {
+        return (rd, csr, rs1) => `${mnemonic} x${rd},0x${csr.toString(16)},x${rs1}`
+    },
+    CSRI(mnemonic) {
+        return (rd, csr, imm) => `${mnemonic} x${rd},0x${csr.toString(16)},${imm}`
     }
 }
 
@@ -221,22 +230,22 @@ const baseInstructions = Object.freeze({
         format: 'I',
     },
     SLLI: {
-        args: ['REGISTER', 'REGISTER', 'SHAMT'],
+        args: ['REGISTER', 'REGISTER', 'U IMMEDIATE 5'],
         assemble: assembleFormat.R(0b0010011, 0b001, 0b0000000),
-        disassemble: disassembleFormat.SHIFT('slli'),
+        disassemble: disassembleFormat.I('slli'),
         format: 'I-SHIFT',
 
     },
     SRLI: {
-        args: ['REGISTER', 'REGISTER', 'SHAMT'],
+        args: ['REGISTER', 'REGISTER', 'U IMMEDIATE 5'],
         assemble: assembleFormat.R(0b0010011, 0b101, 0b0000000),
-        disassemble: disassembleFormat.SHIFT('srli'),
+        disassemble: disassembleFormat.I('srli'),
         format: 'I-SHIFT',
     },
     SRAI: {
-        args: ['REGISTER', 'REGISTER', 'SHAMT'],
+        args: ['REGISTER', 'REGISTER', 'U IMMEDIATE 5'],
         assemble: assembleFormat.R(0b0010011, 0b101, 0b0100000),
-        disassemble: disassembleFormat.SHIFT('srai'),
+        disassemble: disassembleFormat.I('srai'),
         format: 'I-SHIFT',
     },
     ADD: {
@@ -299,7 +308,88 @@ const baseInstructions = Object.freeze({
         disassemble: disassembleFormat.R('and'),
         format: 'R',
     },
+    'FENCE': {
+        args: ['FENCE', 'FENCE'],
+        assemble: (pred, succ) => assembleFormat.I(0b0001111, 0b001)(
+            0,
+            0,
+            ((pred & 0xF) << 4) | (succ & 0xF)
+        ),
+        disassemble: (pred, succ) => `fence ${getFenceIorw(pred)},${getFenceIorw(succ)}`,
+        format: 'I'
+    },
+    'FENCE.I': {
+        args: [],
+        assemble: () => 0x0000100F,
+        disassemble: () => 'fence.i',
+        format: 'I'
+    },
+    'ECALL': {
+        args: [],
+        assemble: () => 0x00000073,
+        disassemble: () => 'ecall',
+        format: 'I'
+    },
+    'EBREAK': {
+        args: [],
+        assemble: () => 0x00100073,
+        disassemble: () => 'ebreak',
+        format: 'I'
+    },
+    'CSRRW': {
+        args: ['REGISTER', 'CSR IMMEDIATE', 'REGISTER'],
+        assemble: assembleFormat.CSR(0b1110011, 0b001),
+        disassemble: disassembleFormat.CSR('csrrw'),
+        format: 'I'
+    },
+    'CSRRS': {
+        args: ['REGISTER', 'CSR IMMEDIATE', 'REGISTER'],
+        assemble: assembleFormat.CSR(0b1110011, 0b010),
+        disassemble: disassembleFormat.CSR('csrrs'),
+        format: 'I'
+    },
+    'CSRRC': {
+        args: ['REGISTER', 'CSR IMMEDIATE', 'REGISTER'],
+        assemble: assembleFormat.CSR(0b1110011, 0b011),
+        disassemble: disassembleFormat.CSR('csrrc'),
+        format: 'I'
+    },
+    'CSRRWI': {
+        args: ['REGISTER', 'CSR IMMEDIATE', 'U IMMEDIATE 5'],
+        assemble: assembleFormat.CSR(0b1110011, 0b101),
+        disassemble: disassembleFormat.CSRI('csrrwi'),
+        format: 'I'
+    },
+    'CSRRSI': {
+        args: ['REGISTER', 'CSR IMMEDIATE', 'U IMMEDIATE 5'],
+        assemble: assembleFormat.CSR(0b1110011, 0b110),
+        disassemble: disassembleFormat.CSRI('csrrsi'),
+        format: 'I'
+    },
+    'CSRRCI': {
+        args: ['REGISTER', 'CSR IMMEDIATE', 'U IMMEDIATE 5'],
+        assemble: assembleFormat.CSR(0b1110011, 0b111),
+        disassemble: disassembleFormat.CSRI('csrrci'),
+        format: 'I'
+    },
 });
+
+const getFenceIorw = (iorw) => {
+    let ret = '';
+    if (iorw & 0b1000) {
+        ret += 'i';
+    }
+    if (iorw & 0b0100) {
+        ret += 'o';
+    }
+    if (iorw & 0b0010) {
+        ret += 'r';
+    }
+    if (iorw & 0b0001) {
+        ret += 'w';
+    }
+    return ret;
+}
 
 const psuedoOp = ({assemble, disassemble, format}, args, mappingFunc) => ({
     assemble: (...args) => assemble(...mappingFunc(...args)),
@@ -309,6 +399,7 @@ const psuedoOp = ({assemble, disassemble, format}, args, mappingFunc) => ({
 });
 
 const reg0 = 0;
+const reg1 = 1;
 
 // See: RISC-V spec v2.2, ch20
 const psuedoInstructions = Object.freeze({
@@ -321,6 +412,30 @@ const psuedoInstructions = Object.freeze({
     SNEZ: psuedoOp(baseInstructions.SLTU, ['REGISTER', 'REGISTER'], (rd, rs) => [rd, reg0, rs]),
     SLTZ: psuedoOp(baseInstructions.SLT, ['REGISTER', 'REGISTER'], (rd, rs) => [rd, rs, reg0]),
     SGTZ: psuedoOp(baseInstructions.SLT, ['REGISTER', 'REGISTER'], (rd, rs) => [rd, reg0, rs]),
+    /* --- */
+    J: psuedoOp(baseInstructions.JAL, ['J IMMEDIATE'], (offset) => [reg0, offset]),
+    JAL: psuedoOp(baseInstructions.JAL, ['J IMMEDIATE'], (offset) => [reg1, offset]),
+    JR: psuedoOp(baseInstructions.JALR, ['REGISTER'], (rs) => [reg0, rs, 0]),
+    JALR: psuedoOp(baseInstructions.JALR, ['REGISTER'], (rs) => [reg1, rs, 0]),
+    RET: psuedoOp(baseInstructions.JALR, [], () => [reg0, reg1, 0]),
+    /* --- */
+    FENCE: psuedoOp(baseInstructions.FENCE, [], () => [0b1111, 0b1111]),
+    /* --- */
+    RDINSTRET: psuedoOp(baseInstructions.CSRRS, ['REGISTER'], (rd) => [rd, 0xC02, reg0]),
+    RDINSTRETH: psuedoOp(baseInstructions.CSRRS, ['REGISTER'], (rd) => [rd, 0xC82, reg0]),
+    RDCYCLE: psuedoOp(baseInstructions.CSRRS, ['REGISTER'], (rd) => [rd, 0xC00, reg0]),
+    RDCYCLEH: psuedoOp(baseInstructions.CSRRS, ['REGISTER'], (rd) => [rd, 0xC80, reg0]),
+    RDTIME: psuedoOp(baseInstructions.CSRRS, ['REGISTER'], (rd) => [rd, 0xC01, reg0]),
+    RDTIMEH: psuedoOp(baseInstructions.CSRRS, ['REGISTER'], (rd) => [rd, 0xC81, reg0]),
+    /* --- */
+    CSRR: psuedoOp(baseInstructions.CSRRS, ['REGISTER', 'CSR IMMEDIATE'], (rd, csr) => [rd, csr, reg0]),
+    CSRW: psuedoOp(baseInstructions.CSRRW, ['CSR IMMEDIATE', 'REGISTER'], (csr, rs) => [reg0, csr, rs]),
+    CSRS: psuedoOp(baseInstructions.CSRRS, ['CSR IMMEDIATE', 'REGISTER'], (csr, rs) => [reg0, csr, rs]),
+    CSRC: psuedoOp(baseInstructions.CSRRC, ['CSR IMMEDIATE', 'REGISTER'], (csr, rs) => [reg0, csr, rs]),
+    /* --- */
+    CSRWI: psuedoOp(baseInstructions.CSRRWI, ['CSR IMMEDIATE', 'U IMMEDIATE 5'], (csr, imm) => [reg0, csr, imm]),
+    CSRSI: psuedoOp(baseInstructions.CSRRSI, ['CSR IMMEDIATE', 'U IMMEDIATE 5'], (csr, imm) => [reg0, csr, imm]),
+    CSRCI: psuedoOp(baseInstructions.CSRRCI, ['CSR IMMEDIATE', 'U IMMEDIATE 5'], (csr, imm) => [reg0, csr, imm]),
 });
 
 module.exports = Object.freeze(Object.assign({}, baseInstructions, psuedoInstructions));

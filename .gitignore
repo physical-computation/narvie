@@ -1,5 +1,5 @@
 *.asc
 *.bin
 *.blif
-
+diamond-config.xcf
 verilator_sim/

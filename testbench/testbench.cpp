@@ -39,7 +39,7 @@ void TESTBENCH::tick(void)
 			m_is_tx = true;
 		}
 
-		if (m_is_tx && m_core.v__DOT__m__DOT__register_files__DOT__tx_ready)
+		if (m_is_tx && m_uart.m_rx_state == RXIDLE)
 		{
 			m_tx_byte_count += 1;
 		}
@@ -58,7 +58,7 @@ void TESTBENCH::tick(void)
 	}
 	else
 	{
-		if (!m_core.rx)
+		if (m_uart.m_tx_state == TXDATA)
 		{
 			m_is_evaluating = true;
 			m_rxStart = m_tickcount;

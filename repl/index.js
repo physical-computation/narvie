@@ -101,6 +101,13 @@ const highlightedLine = (tty, color, text) => {
 };
 
 const readEvalPrint = async ({instruction, serialport}) => {
+	const res = {
+		startTime: process.hrtime.bigint(),
+		sendAssemblyTime: [],
+		receiveRegfileTime: [],
+		endTime: null,
+	};
+
 	const messages = {
 		compiling: inst => `Compiling ${chalk.bgWhite.black(` ${inst} `)} to riscv machine code:`,
 		writing: inst => `Writing ${chalk.bgWhite.black(` ${inst} `)} to to riscv processor:`,
@@ -124,7 +131,7 @@ const readEvalPrint = async ({instruction, serialport}) => {
 	};
 
 	if (instruction === '') {
-		return;
+		return res;
 	}
 
 	let assembled = [];
@@ -141,7 +148,7 @@ Expected: ${error.expected}
 Actual:   ${error.actual}
 `;
 			logProcessorError(messages.compiling(instruction), errorMessage);
-			return;
+			return res;
 		} else {
 			throw error;
 		}
@@ -161,7 +168,7 @@ Actual:   ${error.actual}
 
 
 	for (const {binary, disassembly, format} of assembled) {
-		const {binarySections, latestBinarySection} = [...binary]
+		const {binarySections} = [...binary]
 			.reverse()
 			.map(x => x.toString(2).padStart(8, '0'))
 			.reduce((arr, byte) => {arr.push(...byte); return arr;}, [])
@@ -177,7 +184,7 @@ Actual:   ${error.actual}
 						acc.latestBinarySection = [];
 					}
 
-					return acc;;
+					return acc;
 				},
 				{sectionIndex: 0, indexWithinSection: 0, binarySections: [], latestBinarySection: []}
 			);
@@ -195,11 +202,12 @@ Actual:   ${error.actual}
 		);
 		resetCursor(process.stdout);
 
+		res.sendAssemblyTime.push(process.hrtime.bigint());
 		try {
 			portWrite(serialport, binary);
 		} catch (error) {
 			logProcessorError(messages.writing(disassembly), error);
-			return;
+			return res;
 		}
 
 		highlightedLine(
@@ -217,9 +225,11 @@ Actual:   ${error.actual}
 
 		try {
 			regfile = await portReadRegisters(serialport, {regCount: 32});
+			res.receiveRegfileTime.push(process.hrtime.bigint());
 		} catch (error) {
 			logProcessorError(messages.reading, error);
-			return;
+
+			return res;
 		}
 		highlightedLine(
 			process.stdout,
@@ -262,6 +272,8 @@ Actual:   ${error.actual}
 	}
 
 	process.stdout.write(`${lines.join('\n')}\n`);
+	res.endTime = process.hrtime.bigint();
+	return res;
 };
 
 const run = async rl => {
@@ -331,14 +343,40 @@ const run = async rl => {
 		// 	serialport: serialport,
 		// });
 		while (!portClosed) {
-			const input = await question(rl, `${config.prompt} `);
+			const input = 'add x1, x2, x1'; // (await question(rl, `${config.prompt} `)).trim();
 			if (portClosed) {
 				break;
 			}
-			await readEvalPrint({
-				instruction: input.trim(),
+			const {
+				startTime,
+				endTime,
+				sendAssemblyTime,
+				receiveRegfileTime
+			} = await readEvalPrint({
+				instruction: input,
 				serialport
 			});
+
+			if (startTime !== null && endTime !== null) {
+				highlightedLine(
+					process.stdout,
+					chalk.bgBlue.black,
+					`Evaluation of ${chalk.bgWhite.black(` ${input} `)} took ${(Number(endTime - startTime) * 1.0e-9).toPrecision(4)} seconds.`,
+				);
+				process.stdout.write('\n');
+			}
+			if (receiveRegfileTime.length > 0 && sendAssemblyTime > 0) {
+				highlightedLine(
+					process.stdout,
+					chalk.bgBlue.black,
+					`Between sending the first instruction and receiving the register file were ${(Number(receiveRegfileTime[0] - sendAssemblyTime[0]) * 1.0e-9).toPrecision(4)} seconds.`,
+				);
+				process.stdout.write('\n');
+			}
+			await writeFile(__dirname + '/logs/timing.txt', `${receiveRegfileTime[0] - sendAssemblyTime[0]}\n`, {
+				flag: 'a+'
+			});
+			await new Promise(resolve => setTimeout(resolve, 100));
 		}
 		process.stdout.write('\n');
 		highlightedLine(

@@ -1,0 +1,11 @@
+[package]
+name = "rust-repl"
+version = "0.1.0"
+authors = ["Harry Sarson <harry.sarson@hotmail.co.uk>"]
+
+[dependencies]
+clap = "2.32.0"
+rustyline = "3.0.0"
+directories = "1.0.2"
+log = "0.4.6"
+stderrlog = "0.4.1"

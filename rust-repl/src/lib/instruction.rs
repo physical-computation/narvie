@@ -3,14 +3,13 @@ use lib::register::{GetRegisterError, Register};
 use std::fmt;
 use std::str::FromStr;
 use std::string::String;
-use std::boxed::Box;
 
 #[derive(Debug)]
-pub enum DecodeArgsError {
+pub enum Error {
     WrongNumberOfArgs { actual: usize, expected: usize },
     InvalidRegisterArg(GetRegisterError),
     InvalidImmediateArg(GetImmediateError),
-    InvalidInstructionName(Box<String>)
+    InvalidInstructionName(String),
 }
 
 struct Opcode(u32);
@@ -51,6 +50,11 @@ pub enum Instruction {
     Auipc(U),
 }
 
+#[derive(Debug)]
+pub enum Format {
+    U,
+}
+
 fn place_rd(rd: &Register) -> u32 {
     (rd.to_u32() & 0b11111) << 7
 }
@@ -69,16 +73,15 @@ fn place_opcode(opcode: &Opcode) -> u32 {
 }
 
 impl U {
-    fn from_args(args: &[&str]) -> Result<Self, DecodeArgsError> {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
         if args.len() != 2 {
-            Result::Err(DecodeArgsError::WrongNumberOfArgs {
+            Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
                 expected: 2,
             })
         } else {
-            let rd_o = Register::from_str(args[0]).map_err(DecodeArgsError::InvalidRegisterArg);
-            let imm_o =
-                immediate::U::from_str(args[1]).map_err(DecodeArgsError::InvalidImmediateArg);
+            let rd_o = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg);
+            let imm_o = immediate::U::from_str(args[1]).map_err(Error::InvalidImmediateArg);
 
             rd_o.and_then(|rd| imm_o.map(|imm| U { args: (rd, imm) }))
         }
@@ -111,9 +114,9 @@ impl J {
 }
 
 impl FromStr for Instruction {
-    type Err = DecodeArgsError;
+    type Err = Error;
 
-    fn from_str<'a>(mnemonic: &str) -> Result<Instruction, DecodeArgsError> {
+    fn from_str<'a>(mnemonic: &str) -> Result<Instruction, Error> {
         let mnemonic = mnemonic.trim();
 
         let first_space_index = mnemonic.find(' ').unwrap_or(mnemonic.len());
@@ -125,7 +128,7 @@ impl FromStr for Instruction {
         match name.to_ascii_lowercase().as_str() {
             "lui" => U::from_args(&args).map(Instruction::Lui),
             "auipc" => U::from_args(&args).map(Instruction::Auipc),
-            _ => Err(DecodeArgsError::InvalidInstructionName(Box::new(name.to_string())))
+            _ => Err(Error::InvalidInstructionName(name.to_string())),
         }
     }
 }
@@ -135,7 +138,7 @@ impl fmt::Display for Instruction {
         match self {
             Instruction::Lui(u) => write!(f, "lui {}", u),
             Instruction::Auipc(u) => write!(f, "auipc {}", u),
-            }
+        }
     }
 }
 
@@ -145,6 +148,13 @@ impl Instruction {
         match self {
             Instruction::Lui(u) => u.to_u32(&opcode),
             Instruction::Auipc(u) => u.to_u32(&opcode),
+        }
+    }
+
+    pub fn to_format(&self) -> Format {
+        match self {
+            Instruction::Lui(_) => Format::U,
+            Instruction::Auipc(_) => Format::U,
         }
     }
 }

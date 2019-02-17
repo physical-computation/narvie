@@ -45,6 +45,8 @@ struct RunArgs<'a> {
 fn format_headers(f: &instruction::Format) -> &'static [&'static str] {
     match f {
         instruction::Format::U => &["imm[31:12]", "rd", "opcode"],
+        instruction::Format::J => &["imm[20|10:1|11|19:12]", "rd", "opcode"],
+        instruction::Format::I => &["imm[11:0]", "rs1", "funct3", "rd", "opcode"],
         // instruction::Format::R =>
         // ["funct7", "rs2", "rs1", "funct3", "rd", "opcode"],
     }
@@ -59,6 +61,8 @@ fn format_headers(f: &instruction::Format) -> &'static [&'static str] {
 fn binary_block_widths(f: &instruction::Format) -> &'static [u32] {
     match f {
         instruction::Format::U => &[20, 5, 7],
+        instruction::Format::J => &[20, 5, 7],
+        instruction::Format::I => &[12, 5, 3, 5, 7],
         // instruction::Format::R =>
         //     [7, 5, 5, 3, 5, 7],
     }

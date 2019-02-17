@@ -71,7 +71,7 @@ impl FromStr for U {
 
 impl J {
     pub fn from_i32(imm: i32) -> Option<J> {
-        if imm >= 0 && imm < (1 << 20) && imm & 1 == 0 {
+        if imm >= (-1 << 20) && imm < (1 << 20) && imm & 1 == 0 {
             Some(J(imm))
         } else {
             None

@@ -167,7 +167,6 @@ impl fmt::Display for J {
     }
 }
 
-
 impl I {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
         if args.len() != 3 {
@@ -180,13 +179,19 @@ impl I {
             let rs1_o = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg);
             let imm_o = immediate::I::from_str(args[2]).map_err(Error::InvalidImmediateArg);
 
-            rd_o.and_then(|rd| rs1_o.and_then(|rs1| imm_o.map(|imm| I { args: (rd, rs1, imm) })))
+            rd_o.and_then(|rd| {
+                rs1_o.and_then(|rs1| {
+                    imm_o.map(|imm| I {
+                        args: (rd, rs1, imm),
+                    })
+                })
+            })
         }
     }
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
         let (rd, rs1, imm) = &self.args;
-            (opcode) | place_rd(rd) | place_funct3(funct3) | place_rs1(rs1) | place_imm_i(imm)
+        (opcode) | place_rd(rd) | place_funct3(funct3) | place_rs1(rs1) | place_imm_i(imm)
     }
 }
 
@@ -203,7 +208,6 @@ impl fmt::Display for I {
         )
     }
 }
-
 
 impl FromStr for Instruction {
     type Err = Error;
@@ -237,7 +241,6 @@ impl fmt::Display for Instruction {
         }
     }
 }
-
 
 impl Instruction {
     pub fn to_u32(&self) -> u32 {

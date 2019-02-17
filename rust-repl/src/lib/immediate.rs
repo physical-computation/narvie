@@ -127,12 +127,10 @@ impl FromStr for I {
         get_immediate(string)
             .ok_or(GetImmediateError::InvalidLiteral(string.to_string()))
             .and_then(|imm| {
-                Self::from_i32(imm).ok_or_else(|| {
-                    GetImmediateError::OutsideRange {
-                        actual: imm,
-                        min: -(1 << 11),
-                        max: (1 << 11) - 1,
-                    }
+                Self::from_i32(imm).ok_or_else(|| GetImmediateError::OutsideRange {
+                    actual: imm,
+                    min: -(1 << 11),
+                    max: (1 << 11) - 1,
                 })
             })
     }

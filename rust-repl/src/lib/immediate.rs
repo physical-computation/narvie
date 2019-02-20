@@ -11,6 +11,9 @@ pub struct J(i32);
 pub struct I(i32);
 
 #[derive(Debug)]
+pub struct B(i32);
+
+#[derive(Debug)]
 pub enum GetImmediateError {
     InvalidLiteral(String),
     OutsideRange { actual: i32, min: i32, max: i32 },
@@ -110,7 +113,7 @@ impl FromStr for J {
 impl I {
     pub fn from_i32(imm: i32) -> Option<I> {
         if imm >= (-1 << 11) && imm < (1 << 11) {
-            Some(I(imm))
+            Some(Self(imm))
         } else {
             None
         }
@@ -131,6 +134,41 @@ impl FromStr for I {
                     actual: imm,
                     min: -(1 << 11),
                     max: (1 << 11) - 1,
+                })
+            })
+    }
+}
+
+impl B {
+    pub fn from_i32(imm: i32) -> Option<B> {
+        if imm >= (-1 << 12) && imm < (1 << 12) {
+            Some(Self(imm))
+        } else {
+            None
+        }
+    }
+    pub fn to_i32(&self) -> i32 {
+        self.0
+    }
+}
+
+impl FromStr for B {
+    type Err = GetImmediateError;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        get_immediate(string)
+            .ok_or(GetImmediateError::InvalidLiteral(string.to_string()))
+            .and_then(|imm| {
+                Self::from_i32(imm).ok_or_else(|| {
+                    if imm & 1 == 1 {
+                        GetImmediateError::Odd
+                    } else {
+                        GetImmediateError::OutsideRange {
+                            actual: imm,
+                            min: -(1 << 12),
+                            max: (1 << 12) - 2,
+                        }
+                    }
                 })
             })
     }

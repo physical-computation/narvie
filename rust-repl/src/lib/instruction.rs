@@ -27,6 +27,7 @@ impl Opcode {
     }
 }
 
+#[derive(Debug)]
 struct Funct3(u32);
 
 impl Funct3 {
@@ -58,11 +59,22 @@ pub struct I {
 }
 
 #[derive(Debug)]
+pub struct B {
+    pub args: (Register, Register, immediate::B),
+}
+
+#[derive(Debug)]
 pub enum Instruction {
     Lui(U),
     Auipc(U),
     Jal(J),
     Jalr(I),
+    Beq(B),
+    Bne(B),
+    Blt(B),
+    Bge(B),
+    Bltu(B),
+    Bgeu(B),
 }
 
 #[derive(Debug)]
@@ -70,31 +82,50 @@ pub enum Format {
     U,
     J,
     I,
+    B,
 }
 
 fn place_rd(rd: &Register) -> u32 {
     (rd.to_u32() & 0b11111) << 7
 }
+
 fn place_rs1(rs1: &Register) -> u32 {
     (rs1.to_u32() & 0b11111) << 15
 }
+
+fn place_rs2(rs2: &Register) -> u32 {
+    (rs2.to_u32() & 0b11111) << 20
+}
+
 fn place_imm_u(imm: &immediate::U) -> u32 {
     (imm.to_u32() & 0xFFFFF) << 12
 }
+
 fn place_imm_i(imm: &immediate::I) -> u32 {
     ((imm.to_i32() as u32) & 0xFFF) << 20
 }
+
 fn place_imm_j(imm: &immediate::J) -> u32 {
     let imm_ = imm.to_i32() as u32;
-    0 |
-        ((imm_ & 0x100000) << 11) |     // imm[20], inst[31]
-        ((imm_ & 0x0003FE) << 20) | // imm[10:1], inst[30:21]
-        ((imm_ & 0x000800) << 9) |  // imm[11], inst[20]
-        ((imm_ & 0x0FF000)) // imm[19:12], inst[19:12]
+
+    000 | ((imm_ & 0x100000) << 11) // imm[20], inst[31]
+        | ((imm_ & 0x0003FE) << 20) // imm[10:1], inst[30:21]
+        | ((imm_ & 0x000800) << 09) // imm[11], inst[20]
+        | ((imm_ & 0x0FF000) << 00) // imm[19:12], inst[19:12]
 }
+
+fn place_imm_b(imm: &immediate::B) -> u32 {
+    let imm_ = imm.to_i32() as u32;
+    000 | ((imm_ & 0b1000000000000) << 19) // imm[12], inst[31]
+        | ((imm_ & 0b0011111100000) << 20) // imm[10:5], inst[30:25]
+        | ((imm_ & 0b0000000011110) << 07) // imm[4:1], inst[11:8]
+        | ((imm_ & 0b0100000000000) >> 04) // imm[11], inst[7]
+}
+
 fn place_opcode(opcode: &Opcode) -> u32 {
     opcode.to_u32() & 0b1111111
 }
+
 fn place_funct3(funct3: &Funct3) -> u32 {
     (funct3.to_u32() & 0b111) << 12
 }
@@ -191,7 +222,11 @@ impl I {
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
         let (rd, rs1, imm) = &self.args;
-        (opcode) | place_rd(rd) | place_funct3(funct3) | place_rs1(rs1) | place_imm_i(imm)
+        000 | place_opcode(opcode)
+            | place_rd(rd)
+            | place_funct3(funct3)
+            | place_rs1(rs1)
+            | place_imm_i(imm)
     }
 }
 
@@ -204,6 +239,52 @@ impl fmt::Display for I {
             "x{rd},x{rs1},{imm}", // TODO: limited to 12 bits?
             rd = rd.to_u32(),
             rs1 = rs1.to_u32(),
+            imm = imm.to_i32()
+        )
+    }
+}
+
+impl B {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        if args.len() != 3 {
+            Result::Err(Error::WrongNumberOfArgs {
+                actual: args.len(),
+                expected: 3,
+            })
+        } else {
+            let rs1_o = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg);
+            let rs2_o = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg);
+            let imm_o = immediate::B::from_str(args[2]).map_err(Error::InvalidImmediateArg);
+
+            rs1_o.and_then(|rs1| {
+                rs2_o.and_then(|rs2| {
+                    imm_o.map(|imm| B {
+                        args: (rs1, rs2, imm),
+                    })
+                })
+            })
+        }
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
+        let (rs1, rs2, imm) = &self.args;
+        000 | place_opcode(opcode)
+            | place_imm_b(imm)
+            | place_funct3(funct3)
+            | place_rs1(rs1)
+            | place_rs2(rs2)
+    }
+}
+
+impl fmt::Display for B {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (rs1, rs2, imm) = &self.args;
+
+        write!(
+            f,
+            "x{rs1},x{rs2},{imm}",
+            rs1 = rs1.to_u32(),
+            rs2 = rs2.to_u32(),
             imm = imm.to_i32()
         )
     }
@@ -226,6 +307,12 @@ impl FromStr for Instruction {
             "auipc" => U::from_args(&args).map(Instruction::Auipc),
             "jal" => J::from_args(&args).map(Instruction::Jal),
             "jalr" => I::from_args(&args).map(Instruction::Jalr),
+            "beq" => B::from_args(&args).map(Instruction::Beq),
+            "bne" => B::from_args(&args).map(Instruction::Bne),
+            "blt" => B::from_args(&args).map(Instruction::Blt),
+            "bge" => B::from_args(&args).map(Instruction::Bge),
+            "bltu" => B::from_args(&args).map(Instruction::Bltu),
+            "bgeu" => B::from_args(&args).map(Instruction::Bgeu),
             _ => Err(Error::InvalidInstructionName(name.to_string())),
         }
     }
@@ -238,6 +325,12 @@ impl fmt::Display for Instruction {
             Instruction::Auipc(u) => write!(f, "auipc {}", u),
             Instruction::Jal(j) => write!(f, "jal {}", j),
             Instruction::Jalr(i) => write!(f, "jalr {}", i),
+            Instruction::Beq(b) => write!(f, "beq {}", b),
+            Instruction::Bne(b) => write!(f, "bne {}", b),
+            Instruction::Blt(b) => write!(f, "blt {}", b),
+            Instruction::Bge(b) => write!(f, "bge {}", b),
+            Instruction::Bltu(b) => write!(f, "bktu {}", b),
+            Instruction::Bgeu(b) => write!(f, "bgeu {}", b),
         }
     }
 }
@@ -252,6 +345,30 @@ impl Instruction {
                 &Opcode::from_u32(0b1100111).unwrap(),
                 &Funct3::from_u32(0b000).unwrap(),
             ),
+            Instruction::Beq(b) => b.to_u32(
+                &Opcode::from_u32(0b1100011).unwrap(),
+                &Funct3::from_u32(0b000).unwrap(),
+            ),
+            Instruction::Bne(b) => b.to_u32(
+                &Opcode::from_u32(0b1100011).unwrap(),
+                &Funct3::from_u32(0b001).unwrap(),
+            ),
+            Instruction::Blt(b) => b.to_u32(
+                &Opcode::from_u32(0b1100011).unwrap(),
+                &Funct3::from_u32(0b100).unwrap(),
+            ),
+            Instruction::Bge(b) => b.to_u32(
+                &Opcode::from_u32(0b1100011).unwrap(),
+                &Funct3::from_u32(0b101).unwrap(),
+            ),
+            Instruction::Bltu(b) => b.to_u32(
+                &Opcode::from_u32(0b1100011).unwrap(),
+                &Funct3::from_u32(0b110).unwrap(),
+            ),
+            Instruction::Bgeu(b) => b.to_u32(
+                &Opcode::from_u32(0b1100011).unwrap(),
+                &Funct3::from_u32(0b111).unwrap(),
+            ),
         }
     }
 
@@ -261,6 +378,12 @@ impl Instruction {
             Instruction::Auipc(_) => Format::U,
             Instruction::Jal(_) => Format::J,
             Instruction::Jalr(_) => Format::I,
+            Instruction::Beq(_) => Format::B,
+            Instruction::Bne(_) => Format::B,
+            Instruction::Blt(_) => Format::B,
+            Instruction::Bge(_) => Format::B,
+            Instruction::Bltu(_) => Format::B,
+            Instruction::Bgeu(_) => Format::B,
         }
     }
 }

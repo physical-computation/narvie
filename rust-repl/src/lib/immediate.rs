@@ -21,23 +21,29 @@ pub enum GetImmediateError {
 }
 
 fn get_immediate(string: &str) -> Option<i32> {
-    let (first, rest) = string.split_at(1);
-    if first == "-" {
-        get_immediate(rest).map(|x| -x)
+    if string.is_empty() {
+        None
     } else {
-        (if first == "0" {
-            let (specifier, numeric) = rest.split_at(1);
-            if specifier == "x" {
-                Some((16, numeric))
-            } else if specifier == "b" {
-                Some((2, numeric))
-            } else {
-                None
-            }
+        let (first, rest) = string.split_at(1);
+        if first == "-" {
+            get_immediate(rest).map(|x| -x)
+        } else if rest.is_empty() {
+            i32::from_str(first).ok()
         } else {
-            Some((10, string))
-        })
-        .and_then(|(radix, numeric)| i32::from_str_radix(numeric, radix).ok())
+            (if first == "0" {
+                let (specifier, numeric) = rest.split_at(1);
+                if specifier == "x" {
+                    Some((16, numeric))
+                } else if specifier == "b" {
+                    Some((2, numeric))
+                } else {
+                    None
+                }
+            } else {
+                Some((10, string))
+            })
+            .and_then(|(radix, numeric)| i32::from_str_radix(numeric, radix).ok())
+        }
     }
 }
 
@@ -61,7 +67,7 @@ impl FromStr for U {
         get_immediate(string)
             .ok_or(GetImmediateError::InvalidLiteral(string.to_string()))
             .and_then(|imm| {
-                if imm > 0 {
+                if imm >= 0 {
                     U::from_u32(imm as u32)
                 } else {
                     None

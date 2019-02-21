@@ -4,7 +4,9 @@ extern crate directories;
 extern crate log;
 extern crate prettytable;
 extern crate rustyline;
+extern crate serialport;
 extern crate stderrlog;
+extern crate time;
 
 mod lib;
 
@@ -13,16 +15,17 @@ use clap::{App, Arg};
 use directories::ProjectDirs;
 use lib::instruction::{self, Instruction};
 use lib::register::Register;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use prettytable::*;
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use std::fs;
+use std::fs::{self, File};
 use std::io;
-use std::net::TcpStream;
 use std::path::Path;
 use std::process;
 use std::str::FromStr;
+use std::time::Duration;
 
 #[derive(Debug)]
 enum MainError {
@@ -36,8 +39,33 @@ enum EvalInstructionError {
 }
 
 struct RunArgs<'a> {
-    port: u16,
+    address: &'a str,
+    baud: u32,
     history_file_path: Option<&'a Path>,
+    log_file_path: Option<&'a Path>,
+}
+
+struct SerialLogger<'a, S: io::Read + io::Write> {
+    stream: &'a mut S,
+    logger: Option<&'a mut io::Write>,
+}
+
+impl<'a, S: io::Read + io::Write> io::Read for SerialLogger<'a, S> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let res = self.stream.read(buf);
+        if let Some(ref mut logger) = self.logger {
+            logger.write_all(buf)?;
+        }
+        res
+    }
+}
+impl<'a, S: io::Read + io::Write> io::Write for SerialLogger<'a, S> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.stream.write(buf)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.stream.flush()
+    }
 }
 
 /* narvie will use these as headers when displaying binary.
@@ -171,8 +199,10 @@ where
 
 fn run(args: RunArgs) -> Result<(), MainError> {
     let RunArgs {
-        port,
+        address,
+        baud,
         history_file_path,
+        log_file_path,
     } = args;
 
     let mut rl = Editor::<()>::new();
@@ -181,14 +211,36 @@ fn run(args: RunArgs) -> Result<(), MainError> {
         if rl.load_history(&file).is_err() {
             info!("No existing history file");
         }
+        debug!("Saving history to {}", file.to_string_lossy())
     }
 
-    let mut stream = TcpStream::connect(("localhost", port)).map_err(|e| match e.kind() {
-        io::ErrorKind::ConnectionRefused => MainError::ConnectionRefused,
-        _ => MainError::Other(e),
-    })?;
+    let mut logger = log_file_path.and_then(|p| {
+        File::create(p)
+            .map_err(|e| warn!("Could not open log file: {:?}", e))
+            .map(|l| {
+                debug!("Saving register logs to {}", p.to_string_lossy());
+                l
+            })
+            .ok()
+    });
 
-    stream.set_nodelay(true).map_err(MainError::Other)?;
+    let mut serialport = serialport::open_with_settings(
+        address,
+        &serialport::SerialPortSettings {
+            baud_rate: baud,
+            data_bits: serialport::DataBits::Eight,
+            flow_control: serialport::FlowControl::None,
+            parity: serialport::Parity::None,
+            stop_bits: serialport::StopBits::One,
+            timeout: Duration::from_millis(500),
+        },
+    )
+    .map_err(|_| MainError::ConnectionRefused)?;
+
+    let mut stream = SerialLogger {
+        stream: &mut serialport,
+        logger: logger.as_mut().map(|f| (f as &mut io::Write)),
+    };
 
     loop {
         match rl.readline("> ") {
@@ -223,7 +275,7 @@ fn main() {
         .init()
         .unwrap();
 
-    let history_file = ProjectDirs::from("", "physical-computation", "narvie")
+    let (history_file, log_file) = ProjectDirs::from("", "physical-computation", "narvie")
         .map(|p| p.data_dir().to_owned())
         .ok_or_else(|| warn!("No project dir found"))
         .map(|dir| {
@@ -232,34 +284,64 @@ fn main() {
             }
             dir
         })
-        .map(|dir| dir.join("history.txt"))
-        .ok();
+        .map(|dir| {
+            (
+                Some(dir.join("history.txt")),
+                Some(dir.join(format!("log-{}", time::now_utc().rfc3339()))),
+            )
+        })
+        .unwrap_or((None, None));
 
     let matches = App::new("narve CLI")
         .version("0.1.0")
         .author("Harry Sarson <harry.sarson@hotmail.co.uk>")
         .about("Native RISCV instruction evaluator")
-        .arg(
-            Arg::with_name("port")
-                .required(true)
+        .arg(Arg::with_name("address")
                 .value_name("address")
                 .takes_value(true)
-                .long("port")
-                .help("tcp port address"),
+                .help("serial port port address"),
+        )
+        .arg(Arg::with_name("baud")
+                .default_value("9600")
+                .value_name("baud")
+                .takes_value(true)
+                .long("baud")
+                .help("baud rate"),
         )
         .get_matches();
 
-    let port = matches
-        .value_of("port")
-        .and_then(|p| p.parse::<u16>().ok())
+    let address = matches
+        .value_of("address")
         .unwrap_or_else(|| {
-            error!("The --port argument must be an integer");
+            println!("Narvie requires use of a serial port!");
+            if let Ok(ports) = serialport::available_ports() {
+                if ports.is_empty() {
+                    println!("No available ports could be found - make sure a narvie\nprocessor is plugged into your computer!");
+                } else {
+                    println!("Maybe you could try one of these available ports?");
+                    for (i, info) in ports.iter().enumerate() {
+                        println!("    {}: {}", i + 1, info.port_name);
+                    }
+                }
+            }
+            println!("\n{}", matches.usage());
+            process::exit(1);
+        });
+
+    let baud = matches
+        .value_of("baud")
+        .and_then(|input| input.parse::<u32>().ok())
+        .unwrap_or_else(|| {
+            dbg!(address);
+            error!("Parameter --baud must be an integer");
             process::exit(1);
         });
 
     run(RunArgs {
-        port,
+        address,
+        baud,
         history_file_path: history_file.as_ref().map(|p| p.as_path()),
+        log_file_path: log_file.as_ref().map(|p| p.as_path()),
     })
     .unwrap_or_else(|e| {
         match e {

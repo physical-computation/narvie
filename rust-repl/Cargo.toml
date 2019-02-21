@@ -1,5 +1,5 @@
 [package]
-name = "rust-repl"
+name = "narvie"
 version = "0.1.0"
 authors = ["Harry Sarson <harry.sarson@hotmail.co.uk>"]
 
@@ -11,3 +11,5 @@ log = "0.4.6"
 stderrlog = "0.4.1"
 prettytable-rs = "0.8.0"
 byteorder = "1.3.1"
+serialport = "3.2.0"
+time = "0.1"

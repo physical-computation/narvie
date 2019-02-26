@@ -44,6 +44,22 @@ impl Funct3 {
 }
 
 #[derive(Debug)]
+struct Funct7(u32);
+
+impl Funct7 {
+    pub fn from_u32(funct7: u32) -> Option<Self> {
+        if funct7 & !0x7F == 0 {
+            Some(Funct7(funct7))
+        } else {
+            None
+        }
+    }
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Debug)]
 pub struct U {
     pub args: (Register, immediate::U),
 }
@@ -56,6 +72,11 @@ pub struct J {
 #[derive(Debug)]
 pub struct I {
     pub args: (Register, Register, immediate::I),
+}
+
+#[derive(Debug)]
+pub struct R {
+    pub args: (Register, Register, Register),
 }
 
 #[derive(Debug)]
@@ -75,6 +96,22 @@ pub enum Instruction {
     Bge(B),
     Bltu(B),
     Bgeu(B),
+    Addi(I),
+    Slti(I),
+    Sltiu(I),
+    Xori(I),
+    Ori(I),
+    Andi(I),
+    Add(R),
+    Sub(R),
+    Sll(R),
+    Slt(R),
+    Sltu(R),
+    Xor(R),
+    Srl(R),
+    Sra(R),
+    Or(R),
+    And(R),
 }
 
 #[derive(Debug)]
@@ -83,6 +120,7 @@ pub enum Format {
     J,
     I,
     B,
+    R,
 }
 
 fn place_rd(rd: &Register) -> u32 {
@@ -128,6 +166,10 @@ fn place_opcode(opcode: &Opcode) -> u32 {
 
 fn place_funct3(funct3: &Funct3) -> u32 {
     (funct3.to_u32() & 0b111) << 12
+}
+
+fn place_funct7(funct7: &Funct7) -> u32 {
+    (funct7.to_u32() & 0x3F) << 25
 }
 
 impl U {
@@ -244,6 +286,53 @@ impl fmt::Display for I {
     }
 }
 
+impl R {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        if args.len() != 3 {
+            Result::Err(Error::WrongNumberOfArgs {
+                actual: args.len(),
+                expected: 3,
+            })
+        } else {
+            let rd_o = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg);
+            let rs1_o = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg);
+            let rs2_o = Register::from_str(args[2]).map_err(Error::InvalidRegisterArg);
+
+            rd_o.and_then(|rd| {
+                rs1_o.and_then(|rs1| {
+                    rs2_o.map(|rs2| R {
+                        args: (rd, rs1, rs2),
+                    })
+                })
+            })
+        }
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3, funct7: &Funct7) -> u32 {
+        let (rd, rs1, rs2) = &self.args;
+        000 | place_opcode(opcode)
+            | place_rd(rd)
+            | place_funct3(funct3)
+            | place_rs1(rs1)
+            | place_rs2(rs2)
+            | place_funct7(funct7)
+    }
+}
+
+impl fmt::Display for R {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (rd, rs1, rs2) = &self.args;
+
+        write!(
+            f,
+            "x{rd},x{rs1},{rs2}",
+            rd = rd.to_u32(),
+            rs1 = rs1.to_u32(),
+            rs2 = rs2.to_u32()
+        )
+    }
+}
+
 impl B {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
         if args.len() != 3 {
@@ -313,6 +402,22 @@ impl FromStr for Instruction {
             "bge" => B::from_args(&args).map(Instruction::Bge),
             "bltu" => B::from_args(&args).map(Instruction::Bltu),
             "bgeu" => B::from_args(&args).map(Instruction::Bgeu),
+            "addi" => I::from_args(&args).map(Instruction::Addi),
+            "slti" => I::from_args(&args).map(Instruction::Slti),
+            "sltiu" => I::from_args(&args).map(Instruction::Sltiu),
+            "xori" => I::from_args(&args).map(Instruction::Xori),
+            "ori" => I::from_args(&args).map(Instruction::Ori),
+            "andi" => I::from_args(&args).map(Instruction::Andi),
+            "add" => R::from_args(&args).map(Instruction::Add),
+            "sub" => R::from_args(&args).map(Instruction::Sub),
+            "sll" => R::from_args(&args).map(Instruction::Sll),
+            "slt" => R::from_args(&args).map(Instruction::Slt),
+            "sltu" => R::from_args(&args).map(Instruction::Sltu),
+            "xor" => R::from_args(&args).map(Instruction::Xor),
+            "srl" => R::from_args(&args).map(Instruction::Srl),
+            "sra" => R::from_args(&args).map(Instruction::Sra),
+            "or" => R::from_args(&args).map(Instruction::Or),
+            "and" => R::from_args(&args).map(Instruction::And),
             _ => Err(Error::InvalidInstructionName(name.to_string())),
         }
     }
@@ -331,6 +436,22 @@ impl fmt::Display for Instruction {
             Instruction::Bge(b) => write!(f, "bge {}", b),
             Instruction::Bltu(b) => write!(f, "bktu {}", b),
             Instruction::Bgeu(b) => write!(f, "bgeu {}", b),
+            Instruction::Addi(i) => write!(f, "addi {}", i),
+            Instruction::Slti(i) => write!(f, "slti {}", i),
+            Instruction::Sltiu(i) => write!(f, "sltiu {}", i),
+            Instruction::Xori(i) => write!(f, "xori {}", i),
+            Instruction::Ori(i) => write!(f, "ori {}", i),
+            Instruction::Andi(i) => write!(f, "andi {}", i),
+            Instruction::Add(r) => write!(f, "add {}", r),
+            Instruction::Sub(r) => write!(f, "sub {}", r),
+            Instruction::Sll(r) => write!(f, "sll {}", r),
+            Instruction::Slt(r) => write!(f, "slt {}", r),
+            Instruction::Sltu(r) => write!(f, "sltu {}", r),
+            Instruction::Xor(r) => write!(f, "xor {}", r),
+            Instruction::Srl(r) => write!(f, "srl {}", r),
+            Instruction::Sra(r) => write!(f, "sra {}", r),
+            Instruction::Or(r) => write!(f, "or {}", r),
+            Instruction::And(r) => write!(f, "and {}", r),
         }
     }
 }
@@ -369,6 +490,80 @@ impl Instruction {
                 &Opcode::from_u32(0b1100011).unwrap(),
                 &Funct3::from_u32(0b111).unwrap(),
             ),
+            Instruction::Addi(i) => i.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b000).unwrap(),
+            ),
+            Instruction::Slti(i) => i.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b010).unwrap(),
+            ),
+            Instruction::Sltiu(i) => i.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b011).unwrap(),
+            ),
+            Instruction::Xori(i) => i.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b100).unwrap(),
+            ),
+            Instruction::Ori(i) => i.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b110).unwrap(),
+            ),
+            Instruction::Andi(i) => i.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b111).unwrap(),
+            ),
+            Instruction::Add(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b000).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Sub(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b000).unwrap(),
+                &Funct7::from_u32(0b0100000).unwrap(),
+            ),
+            Instruction::Sll(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b001).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Slt(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b010).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Sltu(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b011).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Xor(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b100).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Srl(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b101).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Sra(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b101).unwrap(),
+                &Funct7::from_u32(0b0100000).unwrap(),
+            ),
+            Instruction::Or(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b110).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::And(r) => r.to_u32(
+                &Opcode::from_u32(0b0110011).unwrap(),
+                &Funct3::from_u32(0b111).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
         }
     }
 
@@ -384,6 +579,22 @@ impl Instruction {
             Instruction::Bge(_) => Format::B,
             Instruction::Bltu(_) => Format::B,
             Instruction::Bgeu(_) => Format::B,
+            Instruction::Addi(_) => Format::I,
+            Instruction::Slti(_) => Format::I,
+            Instruction::Sltiu(_) => Format::I,
+            Instruction::Xori(_) => Format::I,
+            Instruction::Ori(_) => Format::I,
+            Instruction::Andi(_) => Format::I,
+            Instruction::Add(_) => Format::R,
+            Instruction::Sub(_) => Format::R,
+            Instruction::Sll(_) => Format::R,
+            Instruction::Slt(_) => Format::R,
+            Instruction::Sltu(_) => Format::R,
+            Instruction::Xor(_) => Format::R,
+            Instruction::Srl(_) => Format::R,
+            Instruction::Sra(_) => Format::R,
+            Instruction::Or(_) => Format::R,
+            Instruction::And(_) => Format::R,
         }
     }
 }

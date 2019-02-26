@@ -4,7 +4,12 @@ set -e
 
 cd RV32I_common
 
-yosys -p "synth_ice40 -blif ../rv32i_ice40MDP.blif;" verilog/adder.v verilog/cpu.v verilog/mux2to1.v verilog/alu_control.v verilog/pipeline_registers.v verilog/alu.v verilog/data_memory_iCE40UP5K.v verilog/program_counter.v verilog/branch_decide.v verilog/forwarding_unit.v verilog/branch_predictor.v verilog/imm_gen.v verilog/control_unit.v  verilog/register_file_iCE40UP5K.v verilog/CSR_iCE40UP5K.v verilog/dataMem_mask_gen.v uart/baudgen_tx.v uart/uart_tx.v uart/baudgen_rx.v uart/uart_rx.v ../rx_instruction.v ../top.v ../main.v ../uart_regfile.v
+UART_RX=../peripherals/uart-rx
+UART_TX=../peripherals/uart-tx
+
+yosys -p "synth_ice40 -blif ../rv32i_ice40MDP.blif;" verilog/adder.v verilog/mux2to1.v verilog/alu_control.v verilog/pipeline_registers.v verilog/alu.v ../data_memory_iCE40UP5K.v verilog/program_counter.v verilog/branch_decide.v verilog/forwarding_unit.v verilog/branch_predictor.v verilog/imm_gen.v verilog/control_unit.v  verilog/register_file_iCE40UP5K.v verilog/CSR_iCE40UP5K.v verilog/dataMem_mask_gen.v \
+$UART_TX/baudgen_tx.v $UART_TX/uart_tx.v $UART_RX/baudgen_rx.v $UART_RX/uart_rx.v \
+../cpu.v ../rx_instruction.v ../top.v ../main.v ../uart_regfile.v
 
 arachne-pnr -d 5k -P uwg30 -p ../rv32i_ice40MDP.pcf ../rv32i_ice40MDP.blif -o ../rv32i_ice40MDP.asc
 

@@ -251,7 +251,21 @@ fn run(args: RunArgs) -> Result<(), MainError> {
                         warn!("Error saving history to file");
                     }
                 }
-                eval_instruction(line.trim(), &mut stream).expect("error eval");
+                let line = line.trim();
+                if !line.is_empty() {
+                    if let Err(error) = eval_instruction(line, &mut stream) {
+                        println!("Error {} instruction:",  match error {
+                            EvalInstructionError::Parse(_) =>
+                                "parsing",
+                        });
+
+                        match error {
+                            EvalInstructionError::Parse(parse_error) =>
+                                println!("  {:?}", parse_error),
+                        };
+
+                    }
+                }
             }
             Err(ReadlineError::Interrupted) => {
                 break;

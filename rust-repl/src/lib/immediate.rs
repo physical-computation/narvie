@@ -11,6 +11,9 @@ pub struct J(i32);
 pub struct I(i32);
 
 #[derive(Debug)]
+pub struct S(i32);
+
+#[derive(Debug)]
 pub struct B(i32);
 
 #[derive(Debug)]
@@ -117,7 +120,7 @@ impl FromStr for J {
 }
 
 impl I {
-    pub fn from_i32(imm: i32) -> Option<I> {
+    pub fn from_i32(imm: i32) -> Option<Self> {
         if imm >= (-1 << 11) && imm < (1 << 11) {
             Some(Self(imm))
         } else {
@@ -142,6 +145,24 @@ impl FromStr for I {
                     max: (1 << 11) - 1,
                 })
             })
+    }
+}
+
+impl S {
+    pub fn from_i32(imm: i32) -> Option<Self> {
+        I::from_i32(imm).map(|i| S(i.to_i32()))
+    }
+
+    pub fn to_i32(&self) -> i32 {
+        self.0
+    }
+}
+
+impl FromStr for S {
+    type Err = GetImmediateError;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        I::from_str(string).map(|i| S(i.to_i32()))
     }
 }
 

@@ -84,6 +84,7 @@ fn format_headers(f: &instruction::Format) -> &'static [&'static str] {
             "opcode",
         ],
         instruction::Format::R => &["funct7", "rs2", "rs1", "funct3", "rd", "opcode"],
+        instruction::Format::S => &["imm[11:5]", "rs2", "rs1", "funct3", "imm[4:0]", "opcode"],
     }
 }
 
@@ -100,6 +101,7 @@ fn binary_block_widths(f: &instruction::Format) -> &'static [u32] {
         instruction::Format::I => &[12, 5, 3, 5, 7],
         instruction::Format::B => &[7, 5, 5, 3, 5, 7],
         instruction::Format::R => &[7, 5, 5, 3, 5, 7],
+        instruction::Format::S => &[7, 5, 5, 3, 5, 7],
     }
 }
 
@@ -294,12 +296,14 @@ fn main() {
         .version("0.1.0")
         .author("Harry Sarson <harry.sarson@hotmail.co.uk>")
         .about("Native RISCV instruction evaluator")
-        .arg(Arg::with_name("address")
+        .arg(
+            Arg::with_name("address")
                 .value_name("address")
                 .takes_value(true)
                 .help("serial port port address"),
         )
-        .arg(Arg::with_name("baud")
+        .arg(
+            Arg::with_name("baud")
                 .default_value("9600")
                 .value_name("baud")
                 .takes_value(true)

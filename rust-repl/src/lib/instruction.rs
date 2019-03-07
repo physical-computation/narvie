@@ -5,10 +5,18 @@ use std::str::FromStr;
 use std::string::String;
 
 #[derive(Debug)]
+pub enum GetMemoryLocationError {
+    MissingOpenParentheses,
+    MissingCloseParentheses,
+    TextAfterCloseParenthesis,
+}
+
+#[derive(Debug)]
 pub enum Error {
     WrongNumberOfArgs { actual: usize, expected: usize },
     InvalidRegisterArg(GetRegisterError),
     InvalidImmediateArg(GetImmediateError),
+    InvalidMemoryLocationArg(GetMemoryLocationError),
     InvalidInstructionName(String),
 }
 
@@ -75,6 +83,11 @@ pub struct I {
 }
 
 #[derive(Debug)]
+pub struct S {
+    pub args: (Register, Register, immediate::S),
+}
+
+#[derive(Debug)]
 pub struct R {
     pub args: (Register, Register, Register),
 }
@@ -101,6 +114,9 @@ pub enum Instruction {
     Lw(I),
     Lbu(I),
     Lhu(I),
+    Sb(S),
+    Sh(S),
+    Sw(S),
     Addi(I),
     Slti(I),
     Sltiu(I),
@@ -126,6 +142,7 @@ pub enum Format {
     I,
     B,
     R,
+    S,
 }
 
 fn place_rd(rd: &Register) -> u32 {
@@ -146,6 +163,13 @@ fn place_imm_u(imm: &immediate::U) -> u32 {
 
 fn place_imm_i(imm: &immediate::I) -> u32 {
     ((imm.to_i32() as u32) & 0xFFF) << 20
+}
+
+fn place_imm_s(imm: &immediate::S) -> u32 {
+    let imm_ = imm.to_i32() as u32;
+
+    000 | ((imm_ & 0b111111100000) << 20) // imm[11:5], inst[31:25]
+        | ((imm_ & 0b000000011111) << 07) // imm[4:0], inst[11:7]
 }
 
 fn place_imm_j(imm: &immediate::J) -> u32 {
@@ -245,6 +269,34 @@ impl fmt::Display for J {
     }
 }
 
+fn get_memory_argument(memory_location: &str) -> Result<(Register, immediate::I), Error> {
+    let open_bracket_index = memory_location
+        .find('(')
+        .ok_or(Error::InvalidMemoryLocationArg(
+            GetMemoryLocationError::MissingOpenParentheses,
+        ))?;
+
+    let close_bracket_index = memory_location
+        .find(')')
+        .ok_or(Error::InvalidMemoryLocationArg(
+            GetMemoryLocationError::MissingCloseParentheses,
+        ))?;
+
+    if close_bracket_index != memory_location.len() - 1 {
+        dbg!(memory_location);
+        return Err(Error::InvalidMemoryLocationArg(
+            GetMemoryLocationError::TextAfterCloseParenthesis,
+        ));
+    }
+
+    let rs1 = Register::from_str(&memory_location[open_bracket_index + 1..close_bracket_index])
+        .map_err(Error::InvalidRegisterArg)?;
+
+    let offset = immediate::I::from_str(&memory_location[0..open_bracket_index])
+        .map_err(Error::InvalidImmediateArg)?;
+    Ok((rs1, offset))
+}
+
 impl I {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
         if args.len() != 3 {
@@ -263,6 +315,22 @@ impl I {
                         args: (rd, rs1, imm),
                     })
                 })
+            })
+        }
+    }
+
+    fn load_from_args(args: &[&str]) -> Result<Self, Error> {
+        if args.len() != 2 {
+            Result::Err(Error::WrongNumberOfArgs {
+                actual: args.len(),
+                expected: 2,
+            })
+        } else {
+            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let (rs1, offset) = get_memory_argument(args[1])?;
+
+            Ok(I {
+                args: (rd, rs1, offset),
             })
         }
     }
@@ -287,6 +355,46 @@ impl fmt::Display for I {
             rd = rd.to_u32(),
             rs1 = rs1.to_u32(),
             imm = imm.to_i32()
+        )
+    }
+}
+
+impl S {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        if args.len() != 2 {
+            Result::Err(Error::WrongNumberOfArgs {
+                actual: args.len(),
+                expected: 2,
+            })
+        } else {
+            let rs2 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let (rs1, offset) = get_memory_argument(args[1])?;
+            Ok(S {
+                args: (rs1, rs2, immediate::S::from_i32(offset.to_i32()).unwrap()),
+            })
+        }
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
+        let (rs1, rs2, imm) = &self.args;
+        000 | place_opcode(opcode)
+            | place_funct3(funct3)
+            | place_rs1(rs1)
+            | place_rs2(rs2)
+            | place_imm_s(imm)
+    }
+}
+
+impl fmt::Display for S {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (rs1, rs2, imm) = &self.args;
+
+        write!(
+            f,
+            "x{rs2},{imm}({rs1})", // TODO: limited to 12 bits?
+            rs1 = rs1.to_u32(),
+            rs2 = rs2.to_u32(),
+            imm = imm.to_i32(),
         )
     }
 }
@@ -407,11 +515,14 @@ impl FromStr for Instruction {
             "bge" => B::from_args(&args).map(Instruction::Bge),
             "bltu" => B::from_args(&args).map(Instruction::Bltu),
             "bgeu" => B::from_args(&args).map(Instruction::Bgeu),
-            "lb" => I::from_args(&args).map(Instruction::Lb),
-            "lh" => I::from_args(&args).map(Instruction::Lh),
-            "lw" => I::from_args(&args).map(Instruction::Lw),
-            "lbu" => I::from_args(&args).map(Instruction::Lbu),
-            "lhu" => I::from_args(&args).map(Instruction::Lhu),
+            "lb" => I::load_from_args(&args).map(Instruction::Lb),
+            "lh" => I::load_from_args(&args).map(Instruction::Lh),
+            "lw" => I::load_from_args(&args).map(Instruction::Lw),
+            "lbu" => I::load_from_args(&args).map(Instruction::Lbu),
+            "lhu" => I::load_from_args(&args).map(Instruction::Lhu),
+            "sb" => S::from_args(&args).map(Instruction::Sb),
+            "sh" => S::from_args(&args).map(Instruction::Sh),
+            "sw" => S::from_args(&args).map(Instruction::Sw),
             "addi" => I::from_args(&args).map(Instruction::Addi),
             "slti" => I::from_args(&args).map(Instruction::Slti),
             "sltiu" => I::from_args(&args).map(Instruction::Sltiu),
@@ -451,6 +562,9 @@ impl fmt::Display for Instruction {
             Instruction::Lw(i) => write!(f, "lw {}", i),
             Instruction::Lbu(i) => write!(f, "lbu {}", i),
             Instruction::Lhu(i) => write!(f, "lhu {}", i),
+            Instruction::Sb(s) => write!(f, "sb {}", s),
+            Instruction::Sh(s) => write!(f, "sh {}", s),
+            Instruction::Sw(s) => write!(f, "sw {}", s),
             Instruction::Addi(i) => write!(f, "addi {}", i),
             Instruction::Slti(i) => write!(f, "slti {}", i),
             Instruction::Sltiu(i) => write!(f, "sltiu {}", i),
@@ -524,6 +638,18 @@ impl Instruction {
             Instruction::Lhu(i) => i.to_u32(
                 &Opcode::from_u32(0b0000011).unwrap(),
                 &Funct3::from_u32(0b101).unwrap(),
+            ),
+            Instruction::Sb(s) => s.to_u32(
+                &Opcode::from_u32(0b0100011).unwrap(),
+                &Funct3::from_u32(0b000).unwrap(),
+            ),
+            Instruction::Sh(s) => s.to_u32(
+                &Opcode::from_u32(0b0100011).unwrap(),
+                &Funct3::from_u32(0b001).unwrap(),
+            ),
+            Instruction::Sw(s) => s.to_u32(
+                &Opcode::from_u32(0b0100011).unwrap(),
+                &Funct3::from_u32(0b010).unwrap(),
             ),
             Instruction::Addi(i) => i.to_u32(
                 &Opcode::from_u32(0b0010011).unwrap(),
@@ -619,6 +745,9 @@ impl Instruction {
             Instruction::Lw(_) => Format::I,
             Instruction::Lbu(_) => Format::I,
             Instruction::Lhu(_) => Format::I,
+            Instruction::Sb(_) => Format::S,
+            Instruction::Sh(_) => Format::S,
+            Instruction::Sw(_) => Format::S,
             Instruction::Addi(_) => Format::I,
             Instruction::Slti(_) => Format::I,
             Instruction::Sltiu(_) => Format::I,

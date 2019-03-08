@@ -1,4 +1,4 @@
-use lib::immediate::{self, GetImmediateError};
+use lib::immediate::{self, Immediate, InvalidImmediate};
 use lib::register::{GetRegisterError, Rd, Register, Rs1, Rs2};
 use std::fmt;
 use std::str::FromStr;
@@ -15,7 +15,7 @@ pub enum GetMemoryLocationError {
 pub enum Error {
     WrongNumberOfArgs { actual: usize, expected: usize },
     InvalidRegisterArg(GetRegisterError),
-    InvalidImmediateArg(GetImmediateError),
+    InvalidImmediateArg(InvalidImmediate),
     InvalidMemoryLocationArg(GetMemoryLocationError),
     InvalidInstructionName(String),
 }
@@ -69,22 +69,22 @@ impl Funct7 {
 
 #[derive(Debug)]
 pub struct U {
-    pub args: (Register<Rd>, immediate::U),
+    pub args: (Register<Rd>, Immediate<immediate::U>),
 }
 
 #[derive(Debug)]
 pub struct J {
-    pub args: (Register<Rd>, immediate::J),
+    pub args: (Register<Rd>, Immediate<immediate::J>),
 }
 
 #[derive(Debug)]
 pub struct I {
-    pub args: (Register<Rd>, Register<Rs1>, immediate::I),
+    pub args: (Register<Rd>, Register<Rs1>, Immediate<immediate::I>),
 }
 
 #[derive(Debug)]
 pub struct S {
-    pub args: (Register<Rs1>, Register<Rs2>, immediate::S),
+    pub args: (Register<Rs1>, Register<Rs2>, Immediate<immediate::S>),
 }
 
 #[derive(Debug)]
@@ -94,7 +94,7 @@ pub struct R {
 
 #[derive(Debug)]
 pub struct B {
-    pub args: (Register<Rs1>, Register<Rs2>, immediate::B),
+    pub args: (Register<Rs1>, Register<Rs2>, Immediate<immediate::B>),
 }
 
 #[derive(Debug)]
@@ -156,22 +156,22 @@ fn place_rs2(rs2: &Register<Rs2>) -> u32 {
     (rs2.to_u32() & 0b11111) << 20
 }
 
-fn place_imm_u(imm: &immediate::U) -> u32 {
-    (imm.to_u32() & 0xFFFFF) << 12
+fn place_imm_u(imm: &Immediate<immediate::U>) -> u32 {
+    (imm.to_i32() as u32 & 0xFFFFF) << 12
 }
 
-fn place_imm_i(imm: &immediate::I) -> u32 {
+fn place_imm_i(imm: &Immediate<immediate::I>) -> u32 {
     ((imm.to_i32() as u32) & 0xFFF) << 20
 }
 
-fn place_imm_s(imm: &immediate::S) -> u32 {
+fn place_imm_s(imm: &Immediate<immediate::S>) -> u32 {
     let imm_ = imm.to_i32() as u32;
 
     000 | ((imm_ & 0b111111100000) << 20) // imm[11:5], inst[31:25]
         | ((imm_ & 0b000000011111) << 07) // imm[4:0], inst[11:7]
 }
 
-fn place_imm_j(imm: &immediate::J) -> u32 {
+fn place_imm_j(imm: &Immediate<immediate::J>) -> u32 {
     let imm_ = imm.to_i32() as u32;
 
     000 | ((imm_ & 0x100000) << 11) // imm[20], inst[31]
@@ -180,7 +180,7 @@ fn place_imm_j(imm: &immediate::J) -> u32 {
         | ((imm_ & 0x0FF000) << 00) // imm[19:12], inst[19:12]
 }
 
-fn place_imm_b(imm: &immediate::B) -> u32 {
+fn place_imm_b(imm: &Immediate<immediate::B>) -> u32 {
     let imm_ = imm.to_i32() as u32;
     000 | ((imm_ & 0b1000000000000) << 19) // imm[12], inst[31]
         | ((imm_ & 0b0011111100000) << 20) // imm[10:5], inst[30:25]
@@ -209,7 +209,7 @@ impl U {
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let imm = immediate::U::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
+            let imm = Immediate::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
 
             Ok(U { args: (rd, imm) })
         }
@@ -229,7 +229,7 @@ impl fmt::Display for U {
             f,
             "x{rd},0x{imm:x}", // TODO: limited to 12 bits?
             rd = rd.to_u32(),
-            imm = imm.to_u32()
+            imm = imm.to_i32()
         )
     }
 }
@@ -243,7 +243,7 @@ impl J {
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let imm = immediate::J::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
+            let imm = Immediate::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
 
             Ok(J { args: (rd, imm) })
         }
@@ -268,7 +268,9 @@ impl fmt::Display for J {
     }
 }
 
-fn get_memory_argument(memory_location: &str) -> Result<(Register<Rs1>, immediate::I), Error> {
+fn get_memory_argument(
+    memory_location: &str,
+) -> Result<(Register<Rs1>, Immediate<immediate::I>), Error> {
     let open_bracket_index = memory_location
         .find('(')
         .ok_or(Error::InvalidMemoryLocationArg(
@@ -291,7 +293,7 @@ fn get_memory_argument(memory_location: &str) -> Result<(Register<Rs1>, immediat
     let rs1 = Register::from_str(&memory_location[open_bracket_index + 1..close_bracket_index])
         .map_err(Error::InvalidRegisterArg)?;
 
-    let offset = immediate::I::from_str(&memory_location[0..open_bracket_index])
+    let offset = Immediate::from_str(&memory_location[0..open_bracket_index])
         .map_err(Error::InvalidImmediateArg)?;
     Ok((rs1, offset))
 }
@@ -306,7 +308,7 @@ impl I {
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
             let rs1 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
-            let imm = immediate::I::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
+            let imm = Immediate::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
 
             Ok(I {
                 args: (rd, rs1, imm),
@@ -365,7 +367,7 @@ impl S {
             let rs2 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
             let (rs1, offset) = get_memory_argument(args[1])?;
             Ok(S {
-                args: (rs1, rs2, immediate::S::from_i32(offset.to_i32()).unwrap()),
+                args: (rs1, rs2, Immediate::from_i32(offset.to_i32()).unwrap()),
             })
         }
     }
@@ -447,7 +449,7 @@ impl B {
         } else {
             let rs1 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
             let rs2 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
-            let imm = immediate::B::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
+            let imm = Immediate::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
 
             Ok(B {
                 args: (rs1, rs2, imm),

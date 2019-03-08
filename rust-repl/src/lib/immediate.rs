@@ -1,26 +1,97 @@
+use std::marker::PhantomData;
 use std::str::FromStr;
 use std::string::String;
 
-#[derive(Debug)]
-pub struct U(u32);
+pub trait Constraints {
+    const MAX: i32;
+    const MIN: i32;
+    const EVEN: bool;
+}
 
 #[derive(Debug)]
-pub struct J(i32);
+pub struct Immediate<I>(i32, PhantomData<I>);
 
 #[derive(Debug)]
-pub struct I(i32);
+pub struct U;
+#[derive(Debug)]
+pub struct J;
+#[derive(Debug)]
+pub struct I;
+#[derive(Debug)]
+pub struct S;
+#[derive(Debug)]
+pub struct B;
+
+impl Constraints for U {
+    const MAX: i32 = (1 << 20) - 1;
+    const MIN: i32 = 0;
+    const EVEN: bool = false;
+}
+
+impl Constraints for J {
+    const MAX: i32 = (1 << 20) - 1;
+    const MIN: i32 = -(1 << 20);
+    const EVEN: bool = true;
+}
+
+impl Constraints for I {
+    const MAX: i32 = (1 << 11) - 1;
+    const MIN: i32 = -(1 << 11);
+    const EVEN: bool = false;
+}
+
+impl Constraints for S {
+    const MAX: i32 = (1 << 11) - 1;
+    const MIN: i32 = -(1 << 11);
+    const EVEN: bool = false;
+}
+
+impl Constraints for B {
+    const MAX: i32 = (1 << 12) - 1;
+    const MIN: i32 = -(1 << 12);
+    const EVEN: bool = true;
+}
 
 #[derive(Debug)]
-pub struct S(i32);
+pub enum ConstraintViolation {
+    LargerThan(i32),
+    SmallerThan(i32),
+    EvenNumberRequired,
+}
 
 #[derive(Debug)]
-pub struct B(i32);
+pub enum InvalidImmediate {
+    Literal(String),
+    NumericValue(ConstraintViolation),
+}
 
-#[derive(Debug)]
-pub enum GetImmediateError {
-    InvalidLiteral(String),
-    OutsideRange { actual: i32, min: i32, max: i32 },
-    Odd,
+fn constaint_violated<X: Constraints>(
+    Immediate(imm, PhantomData): &Immediate<X>,
+) -> Option<ConstraintViolation> {
+    if imm > &X::MAX {
+        Some(ConstraintViolation::LargerThan(X::MAX))
+    } else if imm < &X::MIN {
+        Some(ConstraintViolation::SmallerThan(X::MIN))
+    } else if !(X::EVEN && (imm & 1 == 0)) {
+        Some(ConstraintViolation::EvenNumberRequired)
+    } else {
+        None
+    }
+}
+
+impl<X: Constraints> Immediate<X> {
+    pub fn from_i32(number: i32) -> Result<Self, ConstraintViolation> {
+        let imm = Self(number, PhantomData);
+        if let Some(violated) = constaint_violated(&imm) {
+            Err(violated)
+        } else {
+            Ok(imm)
+        }
+    }
+
+    pub fn to_i32(&self) -> i32 {
+        self.0
+    }
 }
 
 fn get_immediate(string: &str) -> Option<i32> {
@@ -50,153 +121,12 @@ fn get_immediate(string: &str) -> Option<i32> {
     }
 }
 
-impl U {
-    pub fn from_u32(imm: u32) -> Option<U> {
-        if imm < (1 << 20) {
-            Some(U(imm))
-        } else {
-            None
-        }
-    }
-    pub fn to_u32(&self) -> u32 {
-        self.0
-    }
-}
-
-impl FromStr for U {
-    type Err = GetImmediateError;
+impl<X: Constraints> FromStr for Immediate<X> {
+    type Err = InvalidImmediate;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         get_immediate(string)
-            .ok_or(GetImmediateError::InvalidLiteral(string.to_string()))
-            .and_then(|imm| {
-                if imm >= 0 {
-                    U::from_u32(imm as u32)
-                } else {
-                    None
-                }
-                .ok_or(GetImmediateError::OutsideRange {
-                    actual: imm,
-                    min: 0,
-                    max: (1 << 20) - 1,
-                })
-            })
-    }
-}
-
-impl J {
-    pub fn from_i32(imm: i32) -> Option<J> {
-        if imm >= (-1 << 20) && imm < (1 << 20) && imm & 1 == 0 {
-            Some(J(imm))
-        } else {
-            None
-        }
-    }
-    pub fn to_i32(&self) -> i32 {
-        self.0
-    }
-}
-
-impl FromStr for J {
-    type Err = GetImmediateError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        get_immediate(string)
-            .ok_or(GetImmediateError::InvalidLiteral(string.to_string()))
-            .and_then(|imm| {
-                Self::from_i32(imm).ok_or_else(|| {
-                    if imm & 1 == 1 {
-                        GetImmediateError::Odd
-                    } else {
-                        GetImmediateError::OutsideRange {
-                            actual: imm,
-                            min: -1048576,
-                            max: 1048574,
-                        }
-                    }
-                })
-            })
-    }
-}
-
-impl I {
-    pub fn from_i32(imm: i32) -> Option<Self> {
-        if imm >= (-1 << 11) && imm < (1 << 11) {
-            Some(Self(imm))
-        } else {
-            None
-        }
-    }
-    pub fn to_i32(&self) -> i32 {
-        self.0
-    }
-}
-
-impl FromStr for I {
-    type Err = GetImmediateError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        get_immediate(string)
-            .ok_or(GetImmediateError::InvalidLiteral(string.to_string()))
-            .and_then(|imm| {
-                Self::from_i32(imm).ok_or_else(|| GetImmediateError::OutsideRange {
-                    actual: imm,
-                    min: -(1 << 11),
-                    max: (1 << 11) - 1,
-                })
-            })
-    }
-}
-
-impl S {
-    pub fn from_i32(imm: i32) -> Option<Self> {
-        I::from_i32(imm).map(|i| S(i.to_i32()))
-    }
-
-    pub fn to_i32(&self) -> i32 {
-        self.0
-    }
-}
-
-impl FromStr for S {
-    type Err = GetImmediateError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        I::from_str(string).map(|i| S(i.to_i32()))
-    }
-}
-
-impl B {
-    pub fn from_i32(imm: i32) -> Option<B> {
-        if imm >= (-1 << 12) && imm < (1 << 12) {
-            Some(Self(imm))
-        } else {
-            None
-        }
-    }
-    pub fn to_i32(&self) -> i32 {
-        self.0
-    }
-}
-
-impl FromStr for B {
-    type Err = GetImmediateError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        get_immediate(string)
-            .ok_or(GetImmediateError::InvalidLiteral(string.to_string()))
-            .and_then(|imm| {
-                Self::from_i32(imm).ok_or_else(|| {
-                    if imm & 1 == 1 {
-                        GetImmediateError::Odd
-                    } else {
-                        GetImmediateError::OutsideRange {
-                            actual: imm,
-                            min: -(1 << 12),
-                            max: (1 << 12) - 2,
-                        }
-                    }
-                })
-            })
+            .ok_or(InvalidImmediate::Literal(string.to_string()))
+            .and_then(|imm| Self::from_i32(imm).map_err(InvalidImmediate::NumericValue))
     }
 }

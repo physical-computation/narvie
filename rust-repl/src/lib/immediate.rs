@@ -72,7 +72,7 @@ fn constaint_violated<X: Constraints>(
         Some(ConstraintViolation::LargerThan(X::MAX))
     } else if imm < &X::MIN {
         Some(ConstraintViolation::SmallerThan(X::MIN))
-    } else if !(X::EVEN && (imm & 1 == 0)) {
+    } else if X::EVEN && (imm & 1 != 0) {
         Some(ConstraintViolation::EvenNumberRequired)
     } else {
         None

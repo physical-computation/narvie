@@ -1,5 +1,5 @@
 use lib::immediate::{self, GetImmediateError};
-use lib::register::{GetRegisterError, Register, Rs1, Rs2, Rd};
+use lib::register::{GetRegisterError, Rd, Register, Rs1, Rs2};
 use std::fmt;
 use std::str::FromStr;
 use std::string::String;
@@ -153,7 +153,6 @@ fn place_rs1(rs1: &Register<Rs1>) -> u32 {
     (rs1.to_u32() & 0b11111) << 15
 }
 fn place_rs2(rs2: &Register<Rs2>) -> u32 {
-
     (rs2.to_u32() & 0b11111) << 20
 }
 
@@ -212,9 +211,7 @@ impl U {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
             let imm = immediate::U::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
 
-            Ok (U {
-                args: (rd, imm)
-            })
+            Ok(U { args: (rd, imm) })
         }
     }
 
@@ -245,12 +242,10 @@ impl J {
                 expected: 2,
             })
         } else {
-            let rd = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
             let imm = immediate::J::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
 
-            Ok (J {
-                args: (rd, imm)
-            })
+            Ok(J { args: (rd, imm) })
         }
     }
 
@@ -293,7 +288,7 @@ fn get_memory_argument(memory_location: &str) -> Result<(Register<Rs1>, immediat
         ));
     }
 
-    let rs1 = Register::<Rs1>::from_str(&memory_location[open_bracket_index + 1..close_bracket_index])
+    let rs1 = Register::from_str(&memory_location[open_bracket_index + 1..close_bracket_index])
         .map_err(Error::InvalidRegisterArg)?;
 
     let offset = immediate::I::from_str(&memory_location[0..open_bracket_index])
@@ -309,11 +304,11 @@ impl I {
                 expected: 3,
             })
         } else {
-            let rd = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let rs1 = Register::<Rs1>::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
+            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rs1 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
             let imm = immediate::I::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
 
-            Ok (I {
+            Ok(I {
                 args: (rd, rs1, imm),
             })
         }
@@ -326,7 +321,7 @@ impl I {
                 expected: 2,
             })
         } else {
-            let rd = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
             let (rs1, offset) = get_memory_argument(args[1])?;
 
             Ok(I {
@@ -367,7 +362,7 @@ impl S {
                 expected: 2,
             })
         } else {
-            let rs2 = Register::<Rs2>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rs2 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
             let (rs1, offset) = get_memory_argument(args[1])?;
             Ok(S {
                 args: (rs1, rs2, immediate::S::from_i32(offset.to_i32()).unwrap()),
@@ -407,11 +402,11 @@ impl R {
                 expected: 3,
             })
         } else {
-            let rd = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let rs1 = Register::<Rs1>::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
-            let rs2 = Register::<Rs2>::from_str(args[2]).map_err(Error::InvalidRegisterArg)?;
+            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rs1 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
+            let rs2 = Register::from_str(args[2]).map_err(Error::InvalidRegisterArg)?;
 
-            Ok (R {
+            Ok(R {
                 args: (rd, rs1, rs2),
             })
         }
@@ -450,8 +445,8 @@ impl B {
                 expected: 3,
             })
         } else {
-            let rs1 = Register::<Rs1>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let rs2 = Register::<Rs2>::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
+            let rs1 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rs2 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
             let imm = immediate::B::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
 
             Ok(B {

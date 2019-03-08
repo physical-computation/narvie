@@ -175,7 +175,7 @@ fn place_imm_j(imm: &Immediate<immediate::J>) -> u32 {
     let imm_ = imm.to_i32() as u32;
 
     000 | ((imm_ & 0x100000) << 11) // imm[20], inst[31]
-        | ((imm_ & 0x0003FE) << 20) // imm[10:1], inst[30:21]
+        | ((imm_ & 0x0007FE) << 20) // imm[10:1], inst[30:21]
         | ((imm_ & 0x000800) << 09) // imm[11], inst[20]
         | ((imm_ & 0x0FF000) << 00) // imm[19:12], inst[19:12]
 }

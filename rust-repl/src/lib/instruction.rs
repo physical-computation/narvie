@@ -145,59 +145,118 @@ pub enum Format {
     S,
 }
 
-fn place_rd(rd: &Register<Rd>) -> u32 {
-    (rd.to_u32() & 0b11111) << 7
+trait Placeable {
+    const MASK: u32;
+    fn place_unchecked(&self) -> u32;
+    fn place(&self) -> u32 {
+        let bits = self.place_unchecked();
+        if bits & !Self::MASK == 0 {
+            bits
+        } else {
+            panic!("Placed bits do not fit within the mask.");
+        }
+    }
 }
 
-fn place_rs1(rs1: &Register<Rs1>) -> u32 {
-    (rs1.to_u32() & 0b11111) << 15
-}
-fn place_rs2(rs2: &Register<Rs2>) -> u32 {
-    (rs2.to_u32() & 0b11111) << 20
+pub trait RegisterPlacement {
+    const OFFSET: u32;
 }
 
-fn place_imm_u(imm: &Immediate<immediate::U>) -> u32 {
-    (imm.to_i32() as u32 & 0xFFFFF) << 12
+impl<R: RegisterPlacement> Placeable for Register<R> {
+    const MASK: u32 = 0b11111 << R::OFFSET;
+
+    fn place_unchecked(&self) -> u32 {
+        self.to_u32() << R::OFFSET
+    }
 }
 
-fn place_imm_i(imm: &Immediate<immediate::I>) -> u32 {
-    ((imm.to_i32() as u32) & 0xFFF) << 20
+impl RegisterPlacement for Rd {
+    const OFFSET: u32 = 7;
 }
 
-fn place_imm_s(imm: &Immediate<immediate::S>) -> u32 {
-    let imm_ = imm.to_i32() as u32;
-
-    000 | ((imm_ & 0b111111100000) << 20) // imm[11:5], inst[31:25]
-        | ((imm_ & 0b000000011111) << 07) // imm[4:0], inst[11:7]
+impl RegisterPlacement for Rs1 {
+    const OFFSET: u32 = 15;
 }
 
-fn place_imm_j(imm: &Immediate<immediate::J>) -> u32 {
-    let imm_ = imm.to_i32() as u32;
-
-    000 | ((imm_ & 0x100000) << 11) // imm[20], inst[31]
-        | ((imm_ & 0x0007FE) << 20) // imm[10:1], inst[30:21]
-        | ((imm_ & 0x000800) << 09) // imm[11], inst[20]
-        | ((imm_ & 0x0FF000) << 00) // imm[19:12], inst[19:12]
+impl RegisterPlacement for Rs2 {
+    const OFFSET: u32 = 22;
 }
 
-fn place_imm_b(imm: &Immediate<immediate::B>) -> u32 {
-    let imm_ = imm.to_i32() as u32;
-    000 | ((imm_ & 0b1000000000000) << 19) // imm[12], inst[31]
-        | ((imm_ & 0b0011111100000) << 20) // imm[10:5], inst[30:25]
-        | ((imm_ & 0b0000000011110) << 07) // imm[4:1], inst[11:8]
-        | ((imm_ & 0b0100000000000) >> 04) // imm[11], inst[7]
+impl Placeable for Immediate<immediate::U> {
+    const MASK: u32 = 0xFFFFF << 12;
+
+    fn place_unchecked(&self) -> u32 {
+        (self.to_i32() as u32) << 12
+    }
 }
 
-fn place_opcode(opcode: &Opcode) -> u32 {
-    opcode.to_u32() & 0b1111111
+impl Placeable for Immediate<immediate::I> {
+    const MASK: u32 = 0xFFF << 20;
+
+    fn place_unchecked(&self) -> u32 {
+        (self.to_i32() as u32 & 0xFFF) << 20
+    }
 }
 
-fn place_funct3(funct3: &Funct3) -> u32 {
-    (funct3.to_u32() & 0b111) << 12
+impl Placeable for Immediate<immediate::S> {
+    const MASK: u32 = 0xFE000F80;
+
+    fn place_unchecked(&self) -> u32 {
+        let imm_ = self.to_i32() as u32;
+
+        000 | ((imm_ & 0b111111100000) << 20) // imm[11:5], inst[31:25]
+            | ((imm_ & 0b000000011111) << 07) // imm[4:0], inst[11:7]
+    }
 }
 
-fn place_funct7(funct7: &Funct7) -> u32 {
-    (funct7.to_u32() & 0x3F) << 25
+impl Placeable for Immediate<immediate::J> {
+    const MASK: u32 = 0xFFFFF000;
+
+    fn place_unchecked(&self) -> u32 {
+        let imm_ = self.to_i32() as u32;
+
+        000 | ((imm_ & 0x100000) << 11) // imm[20], inst[31]
+            | ((imm_ & 0x0007FE) << 20) // imm[10:1], inst[30:21]
+            | ((imm_ & 0x000800) << 09) // imm[11], inst[20]
+            | ((imm_ & 0x0FF000) << 00) // imm[19:12], inst[19:12]
+    }
+}
+
+impl Placeable for Immediate<immediate::B> {
+    const MASK: u32 = 0xFE000F80;
+
+    fn place_unchecked(&self) -> u32 {
+        let imm_ = self.to_i32() as u32;
+
+        000 | ((imm_ & 0b1000000000000) << 19) // imm[12], inst[31]
+            | ((imm_ & 0b0011111100000) << 20) // imm[10:5], inst[30:25]
+            | ((imm_ & 0b0000000011110) << 07) // imm[4:1], inst[11:8]
+            | ((imm_ & 0b0100000000000) >> 04) // imm[11], inst[7]
+    }
+}
+
+impl Placeable for Opcode {
+    const MASK: u32 = 0x3F;
+
+    fn place_unchecked(&self) -> u32 {
+        self.to_u32()
+    }
+}
+
+impl Placeable for Funct3 {
+    const MASK: u32 = 0x3000;
+
+    fn place_unchecked(&self) -> u32 {
+        self.to_u32() << 12
+    }
+}
+
+impl Placeable for Funct7 {
+    const MASK: u32 = 0xF3000000;
+
+    fn place_unchecked(&self) -> u32 {
+        self.to_u32() << 25
+    }
 }
 
 impl U {
@@ -217,7 +276,7 @@ impl U {
 
     fn to_u32(&self, opcode: &Opcode) -> u32 {
         let (rd, imm) = &self.args;
-        place_opcode(opcode) | place_rd(rd) | place_imm_u(imm)
+        opcode.place() | rd.place() | imm.place()
     }
 }
 
@@ -251,7 +310,7 @@ impl J {
 
     fn to_u32(&self, opcode: &Opcode) -> u32 {
         let (rd, imm) = &self.args;
-        place_opcode(opcode) | place_rd(rd) | place_imm_j(imm)
+        opcode.place() | rd.place() | imm.place()
     }
 }
 
@@ -334,11 +393,7 @@ impl I {
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
         let (rd, rs1, imm) = &self.args;
-        000 | place_opcode(opcode)
-            | place_rd(rd)
-            | place_funct3(funct3)
-            | place_rs1(rs1)
-            | place_imm_i(imm)
+        opcode.place() | rd.place() | funct3.place() | rs1.place() | imm.place()
     }
 }
 
@@ -374,11 +429,7 @@ impl S {
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
         let (rs1, rs2, imm) = &self.args;
-        000 | place_opcode(opcode)
-            | place_funct3(funct3)
-            | place_rs1(rs1)
-            | place_rs2(rs2)
-            | place_imm_s(imm)
+        opcode.place() | funct3.place() | rs1.place() | rs2.place() | imm.place()
     }
 }
 
@@ -416,12 +467,7 @@ impl R {
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3, funct7: &Funct7) -> u32 {
         let (rd, rs1, rs2) = &self.args;
-        000 | place_opcode(opcode)
-            | place_rd(rd)
-            | place_funct3(funct3)
-            | place_rs1(rs1)
-            | place_rs2(rs2)
-            | place_funct7(funct7)
+        opcode.place() | rd.place() | funct3.place() | rs1.place() | rs2.place() | funct7.place()
     }
 }
 
@@ -459,11 +505,7 @@ impl B {
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
         let (rs1, rs2, imm) = &self.args;
-        000 | place_opcode(opcode)
-            | place_imm_b(imm)
-            | place_funct3(funct3)
-            | place_rs1(rs1)
-            | place_rs2(rs2)
+        opcode.place() | imm.place() | funct3.place() | rs1.place() | rs2.place()
     }
 }
 

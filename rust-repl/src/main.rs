@@ -158,7 +158,7 @@ fn reg_file_table(reg_file: &[u32; 32]) -> prettytable::Table {
                     let reg_index = i * 16 + j;
                     let mut row = [
                         format!("x{}", reg_index),
-                        Register::from_u32(reg_index).unwrap().abi_name(),
+                        Register::<()>::from_u32(reg_index).unwrap().abi_name(),
                         format!("0x{:08X}", reg_file[reg_index as usize]),
                     ];
 

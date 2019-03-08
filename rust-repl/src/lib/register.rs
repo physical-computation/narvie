@@ -1,12 +1,20 @@
 use std::str::FromStr;
+use std::marker::PhantomData;
 
 #[derive(Debug)]
-pub struct Register(u32);
+pub struct Register<R> (u32, PhantomData<R>);
 
-impl Register {
-    pub fn from_u32(imm: u32) -> Option<Register> {
+#[derive(Debug)]
+pub struct Rd;
+#[derive(Debug)]
+pub struct Rs1;
+#[derive(Debug)]
+pub struct Rs2;
+
+impl<R> Register<R> {
+    pub fn from_u32(imm: u32) -> Option<Register<R>> {
         if imm < (1 << 5) {
-            Some(Register(imm))
+            Some(Register(imm, PhantomData))
         } else {
             None
         }
@@ -34,7 +42,7 @@ fn check_range(reg: u32, reg_count: u32) -> Result<u32, GetRegisterError> {
     }
 }
 
-impl FromStr for Register {
+impl <R> FromStr for Register<R> {
     type Err = GetRegisterError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
@@ -68,11 +76,11 @@ impl FromStr for Register {
                 }
             }
         }
-        .map(Register)
+        .map(|x| Register/*::<R>*/(x, PhantomData))
     }
 }
 
-impl Register {
+impl <R> Register<R> {
     pub fn abi_name(&self) -> String {
         let i = self.0;
         if i == 0 {

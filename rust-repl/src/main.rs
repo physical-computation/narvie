@@ -28,21 +28,16 @@ use std::str::FromStr;
 use std::time::Duration;
 
 #[derive(Debug)]
-enum MainError {
-    ConnectionRefused,
-    Other(io::Error),
-}
-
-#[derive(Debug)]
 enum EvalInstructionError {
     Parse(instruction::Error),
 }
 
-struct RunArgs<'a> {
-    address: &'a str,
-    baud: u32,
+struct RunArgs<'a, F>
+where
+    F: FnMut(&'static str) -> Result<(), EvalInstructionError>,
+{
     history_file_path: Option<&'a Path>,
-    log_file_path: Option<&'a Path>,
+    evaluator: F,
 }
 
 struct SerialLogger<'a, S: io::Read + io::Write> {
@@ -197,12 +192,13 @@ where
     Ok(())
 }
 
-fn run(args: RunArgs) -> Result<(), MainError> {
+fn run<F>(args: RunArgs<F>) -> Result<(), ReadlineError>
+where
+    for<'b> F: FnMut(&'b str) -> Result<(), EvalInstructionError>,
+{
     let RunArgs {
-        address,
-        baud,
         history_file_path,
-        log_file_path,
+        mut evaluator,
     } = args;
 
     let mut rl = Editor::<()>::new();
@@ -213,34 +209,6 @@ fn run(args: RunArgs) -> Result<(), MainError> {
         }
         debug!("Saving history to {}", file.to_string_lossy())
     }
-
-    let mut logger = log_file_path.and_then(|p| {
-        File::create(p)
-            .map_err(|e| warn!("Could not open log file: {:?}", e))
-            .map(|l| {
-                debug!("Saving register logs to {}", p.to_string_lossy());
-                l
-            })
-            .ok()
-    });
-
-    let mut serialport = serialport::open_with_settings(
-        address,
-        &serialport::SerialPortSettings {
-            baud_rate: baud,
-            data_bits: serialport::DataBits::Eight,
-            flow_control: serialport::FlowControl::None,
-            parity: serialport::Parity::None,
-            stop_bits: serialport::StopBits::One,
-            timeout: Duration::from_millis(500),
-        },
-    )
-    .map_err(|_| MainError::ConnectionRefused)?;
-
-    let mut stream = SerialLogger {
-        stream: &mut serialport,
-        logger: logger.as_mut().map(|f| (f as &mut io::Write)),
-    };
 
     loop {
         match rl.readline("> ") {
@@ -253,33 +221,34 @@ fn run(args: RunArgs) -> Result<(), MainError> {
                 }
                 let line = line.trim();
                 if !line.is_empty() {
-                    if let Err(error) = eval_instruction(line, &mut stream) {
-                        println!("Error {} instruction:",  match error {
-                            EvalInstructionError::Parse(_) =>
-                                "parsing",
-                        });
+                    if let Err(error) = evaluator(line) {
+                        println!(
+                            "Error {} instruction:",
+                            match error {
+                                EvalInstructionError::Parse(_) => "parsing",
+                            }
+                        );
 
                         match error {
-                            EvalInstructionError::Parse(parse_error) =>
-                                println!("  {:?}", parse_error),
+                            EvalInstructionError::Parse(parse_error) => {
+                                println!("  {:?}", parse_error)
+                            }
                         };
-
                     }
                 }
             }
-            Err(ReadlineError::Interrupted) => {
-                break;
-            }
-            Err(ReadlineError::Eof) => {
-                break;
-            }
-            Err(err) => {
-                error!("{:?}", err);
-                break;
-            }
+            Err(ReadlineError::Interrupted) => return Ok(()),
+            Err(ReadlineError::Eof) => return Ok(()),
+            Err(err) => return Err(err),
         }
     }
-    Ok(())
+}
+
+fn constrain<F>(f: F) -> F
+where
+    F: for<'a> FnMut(&'a str) -> Result<(), EvalInstructionError>,
+{
+    f
 }
 
 fn main() {
@@ -324,50 +293,102 @@ fn main() {
                 .long("baud")
                 .help("baud rate"),
         )
+        .arg(
+            Arg::with_name("assemble-only")
+                .long("assemble-only")
+                .help("Only assemble mnemonics, do not evaluate them"),
+        )
         .get_matches();
 
-    let address = matches
-        .value_of("address")
-        .unwrap_or_else(|| {
-            println!("Narvie requires use of a serial port!");
-            if let Ok(ports) = serialport::available_ports() {
-                if ports.is_empty() {
-                    println!("No available ports could be found - make sure a narvie\nprocessor is plugged into your computer!");
-                } else {
-                    println!("Maybe you could try one of these available ports?");
-                    for (i, info) in ports.iter().enumerate() {
-                        println!("    {}: {}", i + 1, info.port_name);
+    if matches.is_present("assemble-only") {
+        let evaluator = constrain(move |mnemonic| {
+            let instruction =
+                Instruction::from_str(mnemonic).map_err(EvalInstructionError::Parse)?;
+
+            assembly_table(&instruction).printstd();
+            Ok(())
+        });
+
+        run(RunArgs {
+            history_file_path: history_file.as_ref().map(|p| p.as_path()),
+            evaluator: evaluator,
+        })
+        .unwrap_or_else(|e| {
+            error!("Unrecognised error: {}", e);
+            process::exit(1)
+        });
+    } else {
+        let address = matches
+            .value_of("address")
+            .unwrap_or_else(|| {
+                println!("Narvie requires use of a serial port!");
+                if let Ok(ports) = serialport::available_ports() {
+                    if ports.is_empty() {
+                        println!("No available ports could be found - make sure a narvie\nprocessor is plugged into your computer!");
+                    } else {
+                        println!("Maybe you could try one of these available ports?");
+                        for (i, info) in ports.iter().enumerate() {
+                            println!("    {}: {}", i + 1, info.port_name);
+                        }
                     }
                 }
-            }
-            println!("\n{}", matches.usage());
-            process::exit(1);
+                println!("\n{}", matches.usage());
+                process::exit(1);
+            });
+
+        let baud = matches
+            .value_of("baud")
+            .and_then(|input| input.parse::<u32>().ok())
+            .unwrap_or_else(|| {
+                error!("Parameter --baud must be an integer");
+                process::exit(1);
+            });
+
+        let mut logger = log_file.and_then(|p| {
+            File::create(&p)
+                .map_err(|e| warn!("Could not open log file: {:?}", e))
+                .map(|l| {
+                    debug!("Saving register logs to {}", p.to_string_lossy());
+                    l
+                })
+                .ok()
         });
 
-    let baud = matches
-        .value_of("baud")
-        .and_then(|input| input.parse::<u32>().ok())
-        .unwrap_or_else(|| {
-            dbg!(address);
-            error!("Parameter --baud must be an integer");
-            process::exit(1);
-        });
-
-    run(RunArgs {
-        address,
-        baud,
-        history_file_path: history_file.as_ref().map(|p| p.as_path()),
-        log_file_path: log_file.as_ref().map(|p| p.as_path()),
-    })
-    .unwrap_or_else(|e| {
-        match e {
-            MainError::ConnectionRefused => error!(
+        let mut serialport = serialport::open_with_settings(
+            address,
+            &serialport::SerialPortSettings {
+                baud_rate: baud,
+                data_bits: serialport::DataBits::Eight,
+                flow_control: serialport::FlowControl::None,
+                parity: serialport::Parity::None,
+                stop_bits: serialport::StopBits::One,
+                timeout: Duration::from_millis(500),
+            },
+        )
+        .unwrap_or_else(|e| {
+            error!(
                 "Cannot connect to narvie processor!
     Check the processor is running and the that you are using the
     correct address. Then run the narvie CLI again."
-            ),
-            MainError::Other(error) => error!("Unrecognised error: {}", error),
-        }
-        process::exit(1)
-    })
+            );
+            debug!("Error details: {:?}", e);
+            process::exit(1)
+        });
+
+        let mut stream = SerialLogger {
+            stream: &mut serialport,
+            logger: logger.as_mut().map(|f| (f as &mut io::Write)),
+        };
+
+        let evaluator = constrain(move |inst| eval_instruction(inst, &mut stream));
+
+        run(RunArgs {
+            history_file_path: history_file.as_ref().map(|p| p.as_path()),
+            evaluator,
+        })
+        .unwrap_or_else(|e| {
+            error!("Unrecognised error: {}", e);
+            process::exit(1)
+        })
+    }
 }

@@ -209,10 +209,12 @@ impl U {
                 expected: 2,
             })
         } else {
-            let rd_o = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg);
-            let imm_o = immediate::U::from_str(args[1]).map_err(Error::InvalidImmediateArg);
+            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let imm = immediate::U::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
 
-            rd_o.and_then(|rd| imm_o.map(|imm| U { args: (rd, imm) }))
+            Ok (U {
+                args: (rd, imm)
+            })
         }
     }
 
@@ -243,10 +245,12 @@ impl J {
                 expected: 2,
             })
         } else {
-            let rd_o = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg);
-            let imm_o = immediate::J::from_str(args[1]).map_err(Error::InvalidImmediateArg);
+            let rd = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let imm = immediate::J::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
 
-            rd_o.and_then(|rd| imm_o.map(|imm| J { args: (rd, imm) }))
+            Ok (J {
+                args: (rd, imm)
+            })
         }
     }
 
@@ -305,16 +309,12 @@ impl I {
                 expected: 3,
             })
         } else {
-            let rd_o = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg);
-            let rs1_o = Register::<Rs1>::from_str(args[1]).map_err(Error::InvalidRegisterArg);
-            let imm_o = immediate::I::from_str(args[2]).map_err(Error::InvalidImmediateArg);
+            let rd = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rs1 = Register::<Rs1>::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
+            let imm = immediate::I::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
 
-            rd_o.and_then(|rd| {
-                rs1_o.and_then(|rs1| {
-                    imm_o.map(|imm| I {
-                        args: (rd, rs1, imm),
-                    })
-                })
+            Ok (I {
+                args: (rd, rs1, imm),
             })
         }
     }
@@ -407,16 +407,12 @@ impl R {
                 expected: 3,
             })
         } else {
-            let rd_o = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg);
-            let rs1_o = Register::<Rs1>::from_str(args[1]).map_err(Error::InvalidRegisterArg);
-            let rs2_o = Register::<Rs2>::from_str(args[2]).map_err(Error::InvalidRegisterArg);
+            let rd = Register::<Rd>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rs1 = Register::<Rs1>::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
+            let rs2 = Register::<Rs2>::from_str(args[2]).map_err(Error::InvalidRegisterArg)?;
 
-            rd_o.and_then(|rd| {
-                rs1_o.and_then(|rs1| {
-                    rs2_o.map(|rs2| R {
-                        args: (rd, rs1, rs2),
-                    })
-                })
+            Ok (R {
+                args: (rd, rs1, rs2),
             })
         }
     }
@@ -454,16 +450,12 @@ impl B {
                 expected: 3,
             })
         } else {
-            let rs1_o = Register::<Rs1>::from_str(args[0]).map_err(Error::InvalidRegisterArg);
-            let rs2_o = Register::<Rs2>::from_str(args[1]).map_err(Error::InvalidRegisterArg);
-            let imm_o = immediate::B::from_str(args[2]).map_err(Error::InvalidImmediateArg);
+            let rs1 = Register::<Rs1>::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
+            let rs2 = Register::<Rs2>::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
+            let imm = immediate::B::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
 
-            rs1_o.and_then(|rs1| {
-                rs2_o.and_then(|rs2| {
-                    imm_o.map(|imm| B {
-                        args: (rs1, rs2, imm),
-                    })
-                })
+            Ok(B {
+                args: (rs1, rs2, imm),
             })
         }
     }

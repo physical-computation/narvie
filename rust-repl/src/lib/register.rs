@@ -1,8 +1,8 @@
-use std::str::FromStr;
 use std::marker::PhantomData;
+use std::str::FromStr;
 
 #[derive(Debug)]
-pub struct Register<R> (u32, PhantomData<R>);
+pub struct Register<R>(u32, PhantomData<R>);
 
 #[derive(Debug)]
 pub struct Rd;
@@ -42,7 +42,7 @@ fn check_range(reg: u32, reg_count: u32) -> Result<u32, GetRegisterError> {
     }
 }
 
-impl <R> FromStr for Register<R> {
+impl<R> FromStr for Register<R> {
     type Err = GetRegisterError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
@@ -80,7 +80,7 @@ impl <R> FromStr for Register<R> {
     }
 }
 
-impl <R> Register<R> {
+impl<R> Register<R> {
     pub fn abi_name(&self) -> String {
         let i = self.0;
         if i == 0 {

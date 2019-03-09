@@ -14,10 +14,7 @@ pub enum GetMemoryLocationError {
 
 #[derive(Debug)]
 pub enum Error {
-    WrongNumberOfArgs {
-        actual: usize,
-        expected: &'static [usize],
-    },
+    WrongNumberOfArgs { actual: usize, expected: Vec<usize> },
     InvalidRegisterArg(GetRegisterError),
     InvalidImmediateArg(InvalidImmediate),
     InvalidMemoryLocationArg(GetMemoryLocationError),
@@ -352,7 +349,7 @@ impl U {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: &[2],
+                expected: vec![2],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -386,7 +383,7 @@ impl J {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: &[2],
+                expected: vec![2],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -450,7 +447,7 @@ impl I {
         if args.len() != 3 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: &[3],
+                expected: vec![3],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -467,7 +464,7 @@ impl I {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: &[2],
+                expected: vec![2],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -504,7 +501,7 @@ impl S {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: &[2],
+                expected: vec![2],
             })
         } else {
             let rs2 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -540,7 +537,7 @@ impl R {
         if args.len() != 3 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: &[3],
+                expected: vec![3],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -578,7 +575,7 @@ impl B {
         if args.len() != 3 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: &[3],
+                expected: vec![3],
             })
         } else {
             let rs1 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -638,39 +635,42 @@ impl<T> FromStr for FenceArg<T> {
 
 impl Fence {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() == 0 {
-            Ok(Fence {
-                args: (
-                    Register::from_u32(0).unwrap(),
-                    Register::from_u32(0).unwrap(),
-                    FenceArg::from_u32(0b1111).unwrap(),
-                    FenceArg::from_u32(0b1111).unwrap(),
-                    Fm::from_u32(0).unwrap(),
-                ),
-            })
-        } else if args.len() == 2 {
-            let pred: FenceArg<FencePredecessor> = args[0]
-                .parse()
-                .or(Err(Error::InvalidFenceArgument(args[0].to_string())))?;
-            let succ: FenceArg<FenceSuccessor> = args[1]
-                .parse()
-                .or(Err(Error::InvalidFenceArgument(args[0].to_string())))?;
+        parse_help(
+            args,
+            (
+                Some(|| {
+                    Ok(Fence {
+                        args: (
+                            Register::ZERO,
+                            Register::ZERO,
+                            FenceArg::from_u32(0b1111).unwrap(),
+                            FenceArg::from_u32(0b1111).unwrap(),
+                            Fm::from_u32(0).unwrap(),
+                        ),
+                    })
+                }),
+                None,
+                Some(|arg0: &str, arg1: &str| {
+                    let pred: FenceArg<FencePredecessor> = arg0
+                        .parse()
+                        .or(Err(Error::InvalidFenceArgument(arg0.to_string())))?;
+                    let succ: FenceArg<FenceSuccessor> = arg1
+                        .parse()
+                        .or(Err(Error::InvalidFenceArgument(arg0.to_string())))?;
 
-            Ok(Fence {
-                args: (
-                    Register::from_u32(0).unwrap(),
-                    Register::from_u32(0).unwrap(),
-                    succ,
-                    pred,
-                    Fm::from_u32(0).unwrap(),
-                ),
-            })
-        } else {
-            Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: &[0, 2],
-            })
-        }
+                    Ok(Fence {
+                        args: (
+                            Register::ZERO,
+                            Register::ZERO,
+                            succ,
+                            pred,
+                            Fm::from_u32(0).unwrap(),
+                        ),
+                    })
+                }),
+                None,
+            ),
+        )
     }
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
@@ -708,21 +708,83 @@ impl fmt::Display for Fence {
     }
 }
 
+fn parse_help<In>(
+    args: &[&str],
+    (f0, f1, f2, f3): (
+        Option<fn() -> Result<In, Error>>,
+        Option<fn(&str) -> Result<In, Error>>,
+        Option<fn(&str, &str) -> Result<In, Error>>,
+        Option<fn(&str, &str, &str) -> Result<In, Error>>,
+    ),
+) -> Result<In, Error>
+where
+    // F1: fn(&str) -> Result<In, Error>,
+    // F2: fn(&str, &str) -> Result<In, Error>,
+    // F3: fn(&str, &str, &str) -> Result<In, Error>,
+{
+    let valid_lengths = {
+        let mut tmp = vec![];
+        if f0.is_some() {
+            tmp.push(0);
+        }
+        if f1.is_some() {
+            tmp.push(1);
+        }
+        if f2.is_some() {
+            tmp.push(2);
+        }
+        if f3.is_some() {
+            tmp.push(3);
+        }
+        tmp
+    };
+    match args.len() {
+        0 => {
+            if let Some(sf0) = f0 {
+                return sf0();
+            }
+        }
+        1 => {
+            if let Some(sf1) = f1 {
+                return sf1(args[0]);
+            }
+        }
+        2 => {
+            if let Some(sf2) = f2 {
+                return sf2(args[0], args[1]);
+            }
+        }
+        3 => {
+            if let Some(sf3) = f3 {
+                return sf3(args[0], args[1], args[2]);
+            }
+        }
+        _ => {}
+    };
+    Result::Err(Error::WrongNumberOfArgs {
+        actual: args.len(),
+        expected: valid_lengths,
+    })
+}
+
 fn parse_no_args(args: &[&str]) -> Result<I, Error> {
-    if args.len() == 0 {
-        Ok(I {
-            args: (
-                Register::from_u32(0).unwrap(),
-                Register::from_u32(0).unwrap(),
-                Immediate::from_i32(0).unwrap(),
-            ),
-        })
-    } else {
-        Err(Error::WrongNumberOfArgs {
-            actual: args.len(),
-            expected: &[0],
-        })
-    }
+    parse_help(
+        args,
+        (
+            Some(|| {
+                Ok(I {
+                    args: (
+                        Register::ZERO,
+                        Register::ZERO,
+                        Immediate::from_i32(0).unwrap(),
+                    ),
+                })
+            }),
+            None,
+            None,
+            None,
+        ),
+    )
 }
 
 impl FromStr for Instruction {

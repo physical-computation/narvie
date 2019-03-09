@@ -22,6 +22,7 @@ impl<R> Register<R> {
     pub fn to_u32(&self) -> u32 {
         self.0
     }
+    pub const ZERO: Register<R> = Register(0, PhantomData);
 }
 
 #[derive(Debug)]

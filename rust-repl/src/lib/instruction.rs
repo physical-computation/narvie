@@ -540,7 +540,11 @@ impl FromStr for Instruction {
 
         let (name, args) = mnemonic.split_at(first_space_index);
 
-        let args: Vec<&str> = args.split(',').map(str::trim).collect();
+        let args: Vec<&str> = if args.is_empty() {
+            vec![]
+        } else {
+            args.split(',').map(str::trim).collect()
+        };
 
         match name.to_ascii_lowercase().as_str() {
             "lui" => U::from_args(&args).map(Instruction::Lui),

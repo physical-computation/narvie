@@ -22,6 +22,7 @@ pub enum Error {
     InvalidFenceArgument(String),
 }
 
+#[derive(Debug)]
 struct Opcode(u32);
 
 impl Opcode {
@@ -207,7 +208,11 @@ trait Placeable {
         if bits & !Self::MASK == 0 {
             bits
         } else {
-            panic!("Placed bits do not fit within the mask.");
+            panic!(
+                "Placed bits (0x{:08X}) do not fit within the mask (0x{:08X}) .",
+                bits,
+                Self::MASK
+            );
         }
     }
 }
@@ -346,17 +351,20 @@ impl Placeable for FenceArg<FencePredecessor> {
 
 impl U {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() != 2 {
-            Result::Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: vec![2],
-            })
-        } else {
-            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let imm = Immediate::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                Some(|rd, imm| {
+                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
+                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
 
-            Ok(U { args: (rd, imm) })
-        }
+                    Ok(U { args: (rd, imm) })
+                }),
+                None,
+            ),
+        )
     }
 
     fn to_u32(&self, opcode: &Opcode) -> u32 {
@@ -380,17 +388,20 @@ impl fmt::Display for U {
 
 impl J {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() != 2 {
-            Result::Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: vec![2],
-            })
-        } else {
-            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let imm = Immediate::from_str(args[1]).map_err(Error::InvalidImmediateArg)?;
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                Some(|rd, imm| {
+                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
+                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
 
-            Ok(J { args: (rd, imm) })
-        }
+                    Ok(J { args: (rd, imm) })
+                }),
+                None,
+            ),
+        )
     }
 
     fn to_u32(&self, opcode: &Opcode) -> u32 {
@@ -412,9 +423,10 @@ impl fmt::Display for J {
     }
 }
 
-fn get_memory_argument(
-    memory_location: &str,
-) -> Result<(Register<Rs1>, Immediate<immediate::I>), Error> {
+fn get_memory_argument<Im>(memory_location: &str) -> Result<(Register<Rs1>, Immediate<Im>), Error>
+where
+    Im: immediate::Constraints,
+{
     let open_bracket_index = memory_location
         .find('(')
         .ok_or(Error::InvalidMemoryLocationArg(
@@ -444,36 +456,42 @@ fn get_memory_argument(
 
 impl I {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() != 3 {
-            Result::Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: vec![3],
-            })
-        } else {
-            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let rs1 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
-            let imm = Immediate::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                None,
+                Some(|rd, rs1, imm| {
+                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
+                    let rs1 = Register::from_str(rs1).map_err(Error::InvalidRegisterArg)?;
+                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
 
-            Ok(I {
-                args: (rd, rs1, imm),
-            })
-        }
+                    Ok(I {
+                        args: (rd, rs1, imm),
+                    })
+                }),
+            ),
+        )
     }
 
     fn load_from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() != 2 {
-            Result::Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: vec![2],
-            })
-        } else {
-            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let (rs1, offset) = get_memory_argument(args[1])?;
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                Some(|rd, mem_arg| {
+                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
+                    let (rs1, offset) = get_memory_argument(mem_arg)?;
 
-            Ok(I {
-                args: (rd, rs1, offset),
-            })
-        }
+                    Ok(I {
+                        args: (rd, rs1, offset),
+                    })
+                }),
+                None,
+            ),
+        )
     }
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
@@ -498,18 +516,22 @@ impl fmt::Display for I {
 
 impl S {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() != 2 {
-            Result::Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: vec![2],
-            })
-        } else {
-            let rs2 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let (rs1, offset) = get_memory_argument(args[1])?;
-            Ok(S {
-                args: (rs1, rs2, Immediate::from_i32(offset.to_i32()).unwrap()),
-            })
-        }
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                Some(|rs2, mem_arg| {
+                    let rs2 = Register::from_str(rs2).map_err(Error::InvalidRegisterArg)?;
+                    let (rs1, offset) = get_memory_argument(mem_arg)?;
+
+                    Ok(S {
+                        args: (rs1, rs2, offset),
+                    })
+                }),
+                None,
+            ),
+        )
     }
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
@@ -534,20 +556,23 @@ impl fmt::Display for S {
 
 impl R {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() != 3 {
-            Result::Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: vec![3],
-            })
-        } else {
-            let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let rs1 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
-            let rs2 = Register::from_str(args[2]).map_err(Error::InvalidRegisterArg)?;
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                None,
+                Some(|rd, rs1, rs2| {
+                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
+                    let rs1 = Register::from_str(rs1).map_err(Error::InvalidRegisterArg)?;
+                    let rs2 = Register::from_str(rs2).map_err(Error::InvalidRegisterArg)?;
 
-            Ok(R {
-                args: (rd, rs1, rs2),
-            })
-        }
+                    Ok(R {
+                        args: (rd, rs1, rs2),
+                    })
+                }),
+            ),
+        )
     }
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3, funct7: &Funct7) -> u32 {
@@ -572,20 +597,23 @@ impl fmt::Display for R {
 
 impl B {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
-        if args.len() != 3 {
-            Result::Err(Error::WrongNumberOfArgs {
-                actual: args.len(),
-                expected: vec![3],
-            })
-        } else {
-            let rs1 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
-            let rs2 = Register::from_str(args[1]).map_err(Error::InvalidRegisterArg)?;
-            let imm = Immediate::from_str(args[2]).map_err(Error::InvalidImmediateArg)?;
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                None,
+                Some(|rs1, rs2, imm| {
+                    let rs1 = Register::from_str(rs1).map_err(Error::InvalidRegisterArg)?;
+                    let rs2 = Register::from_str(rs2).map_err(Error::InvalidRegisterArg)?;
+                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
 
-            Ok(B {
-                args: (rs1, rs2, imm),
-            })
-        }
+                    Ok(B {
+                        args: (rs1, rs2, imm),
+                    })
+                }),
+            ),
+        )
     }
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {

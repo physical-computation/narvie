@@ -204,8 +204,9 @@ impl Placeable for Immediate<immediate::S> {
     fn place_unchecked(&self) -> u32 {
         let imm_ = self.to_i32() as u32;
 
-        000 | ((imm_ & 0b111111100000) << 20) // imm[11:5], inst[31:25]
-            | ((imm_ & 0b000000011111) << 07) // imm[4:0], inst[11:7]
+        // imm[11:5] -> inst[31:25]
+        // imm[4:0]  -> inst[11:7]
+        ((imm_ & 0b111111100000) << 20) | ((imm_ & 0b000000011111) << 07)
     }
 }
 
@@ -214,11 +215,14 @@ impl Placeable for Immediate<immediate::J> {
 
     fn place_unchecked(&self) -> u32 {
         let imm_ = self.to_i32() as u32;
-
-        000 | ((imm_ & 0x100000) << 11) // imm[20], inst[31]
-            | ((imm_ & 0x0007FE) << 20) // imm[10:1], inst[30:21]
-            | ((imm_ & 0x000800) << 09) // imm[11], inst[20]
-            | ((imm_ & 0x0FF000) << 00) // imm[19:12], inst[19:12]
+        // imm[20]    -> inst[31]
+        // imm[10:1]  -> inst[30:21]
+        // imm[11]    -> inst[20]
+        // imm[19:12] ->, inst[19:12]
+        000 | ((imm_ & 0x100000) << 11)
+            | ((imm_ & 0x0007FE) << 20)
+            | ((imm_ & 0x000800) << 09)
+            | ((imm_ & 0x0FF000) << 00)
     }
 }
 
@@ -227,11 +231,14 @@ impl Placeable for Immediate<immediate::B> {
 
     fn place_unchecked(&self) -> u32 {
         let imm_ = self.to_i32() as u32;
-
-        000 | ((imm_ & 0b1000000000000) << 19) // imm[12], inst[31]
-            | ((imm_ & 0b0011111100000) << 20) // imm[10:5], inst[30:25]
-            | ((imm_ & 0b0000000011110) << 07) // imm[4:1], inst[11:8]
-            | ((imm_ & 0b0100000000000) >> 04) // imm[11], inst[7]
+        // imm[12]   -> inst[31]
+        // imm[10:5] -> inst[30:25]
+        // imm[4:1]  -> inst[11:8]
+        // imm[11]   -> inst[7]
+        000 | ((imm_ & 0b1000000000000) << 19)
+            | ((imm_ & 0b0011111100000) << 20)
+            | ((imm_ & 0b0000000011110) << 07)
+            | ((imm_ & 0b0100000000000) >> 04)
     }
 }
 

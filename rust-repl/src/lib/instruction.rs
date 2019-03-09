@@ -787,6 +787,26 @@ fn parse_no_args(args: &[&str]) -> Result<I, Error> {
     )
 }
 
+fn parse_li(args: &[&str]) -> Result<I, Error> {
+    parse_help(
+        args,
+        (
+            None,
+            None,
+            Some(|rd, immediate| {
+                Ok(I {
+                    args: (
+                        Register::from_str(rd).map_err(Error::InvalidRegisterArg)?,
+                        Register::ZERO,
+                        Immediate::from_str(immediate).map_err(Error::InvalidImmediateArg)?,
+                    ),
+                })
+            }),
+            None,
+        ),
+    )
+}
+
 impl FromStr for Instruction {
     type Err = Error;
 
@@ -840,6 +860,9 @@ impl FromStr for Instruction {
             "and" => R::from_args(&args).map(Instruction::And),
             "fence" => Fence::from_args(&args).map(Instruction::Fence),
             "fence.i" => parse_no_args(&args).map(Instruction::FenceI),
+            // Psudo instructions
+            "nop" => parse_no_args(&args).map(Instruction::Addi),
+            "li" => parse_li(&args).map(Instruction::Addi),
             _ => Err(Error::InvalidInstructionName(name.to_string())),
         }
     }

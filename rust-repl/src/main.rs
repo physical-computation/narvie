@@ -20,6 +20,7 @@ use prettytable::*;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::error::Error;
 use std::fs::{self, File};
 use std::io;
 use std::path::Path;
@@ -30,6 +31,8 @@ use std::time::Duration;
 #[derive(Debug)]
 enum EvalInstructionError {
     Parse(instruction::Error),
+    Write(io::Error),
+    Read(io::Error),
 }
 
 struct RunArgs<'a, F>
@@ -183,12 +186,14 @@ where
     assembly_table(&instruction).printstd();
 
     port.write_u32::<LittleEndian>(instruction.to_u32())
-        .unwrap();
+        .map_err(EvalInstructionError::Write)?;
 
     let mut reg_file = [0; 32];
 
     for i in 0..32 {
-        reg_file[i] = port.read_u32::<LittleEndian>().unwrap();
+        reg_file[i] = port
+            .read_u32::<LittleEndian>()
+            .map_err(EvalInstructionError::Read)?;
     }
 
     reg_file_table(&reg_file).printstd();
@@ -196,7 +201,7 @@ where
     Ok(())
 }
 
-fn run<F>(args: RunArgs<F>) -> Result<(), ReadlineError>
+fn run<F>(args: RunArgs<F>) -> Result<(), Box<Error>>
 where
     for<'b> F: FnMut(&'b str) -> Result<(), EvalInstructionError>,
 {
@@ -227,9 +232,11 @@ where
                 if !line.is_empty() {
                     if let Err(error) = evaluator(line) {
                         println!(
-                            "Error {} instruction:",
+                            "Error {}:",
                             match error {
-                                EvalInstructionError::Parse(_) => "parsing",
+                                EvalInstructionError::Parse(_) => "parsing instruction mnemonic",
+                                EvalInstructionError::Write(_) => "writing to serial port",
+                                EvalInstructionError::Read(_) => "reading from serial port",
                             }
                         );
 
@@ -237,13 +244,21 @@ where
                             EvalInstructionError::Parse(parse_error) => {
                                 println!("  {:?}", parse_error)
                             }
+                            EvalInstructionError::Write(e) => {
+                                println!("  {:?}", e);
+                                return Err(Box::new(e));
+                            }
+                            EvalInstructionError::Read(e) => {
+                                println!("  {:?}", e);
+                                return Err(Box::new(e));
+                            }
                         };
                     }
                 }
             }
             Err(ReadlineError::Interrupted) => return Ok(()),
             Err(ReadlineError::Eof) => return Ok(()),
-            Err(err) => return Err(err),
+            Err(err) => return Err(Box::new(err)),
         }
     }
 }

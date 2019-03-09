@@ -656,7 +656,7 @@ impl Fence {
                         .or(Err(Error::InvalidFenceArgument(arg0.to_string())))?;
                     let succ: FenceArg<FenceSuccessor> = arg1
                         .parse()
-                        .or(Err(Error::InvalidFenceArgument(arg0.to_string())))?;
+                        .or(Err(Error::InvalidFenceArgument(arg1.to_string())))?;
 
                     Ok(Fence {
                         args: (

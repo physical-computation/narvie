@@ -236,7 +236,7 @@ impl RegisterPlacement for Rs1 {
 }
 
 impl RegisterPlacement for Rs2 {
-    const OFFSET: u32 = 22;
+    const OFFSET: u32 = 20;
 }
 
 impl Placeable for Immediate<immediate::U> {

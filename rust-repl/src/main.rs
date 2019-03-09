@@ -385,11 +385,23 @@ fn main() {
             },
         )
         .unwrap_or_else(|e| {
-            error!(
-                "Cannot connect to narvie processor!
+            let header = "Cannot connect to narvie processor!";
+            if e.description == "Permission denied" {
+                error!(
+                    "{}
+    It may be that narvie does not have permission to access your serial port.
+    Try running `$ sudo chmod 666 {}`",
+                    header,
+                    address,
+                );
+            } else {
+                error!(
+                    "{}
     Check the processor is running and the that you are using the
-    correct address. Then run the narvie CLI again."
-            );
+    correct address. Then run the narvie CLI again.",
+                    header
+                );
+            }
             debug!("Error details: {:?}", e);
             process::exit(1)
         });

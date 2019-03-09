@@ -297,7 +297,7 @@ impl Placeable for Immediate<immediate::B> {
 }
 
 impl Placeable for Opcode {
-    const MASK: u32 = 0x3F;
+    const MASK: u32 = 0x7F;
 
     fn place_unchecked(&self) -> u32 {
         self.to_u32()

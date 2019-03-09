@@ -80,6 +80,9 @@ fn format_headers(f: &instruction::Format) -> &'static [&'static str] {
         ],
         instruction::Format::R => &["funct7", "rs2", "rs1", "funct3", "rd", "opcode"],
         instruction::Format::S => &["imm[11:5]", "rs2", "rs1", "funct3", "imm[4:0]", "opcode"],
+        instruction::Format::Fence => {
+            &["fm", "pred", "succ", "rs1", "funct3", "imm[4:0]", "opcode"]
+        }
     }
 }
 
@@ -97,6 +100,7 @@ fn binary_block_widths(f: &instruction::Format) -> &'static [u32] {
         instruction::Format::B => &[7, 5, 5, 3, 5, 7],
         instruction::Format::R => &[7, 5, 5, 3, 5, 7],
         instruction::Format::S => &[7, 5, 5, 3, 5, 7],
+        instruction::Format::Fence => &[4, 4, 4, 5, 3, 5, 7],
     }
 }
 

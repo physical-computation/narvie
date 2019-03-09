@@ -1,6 +1,7 @@
 use lib::immediate::{self, Immediate, InvalidImmediate};
 use lib::register::{GetRegisterError, Rd, Register, Rs1, Rs2};
 use std::fmt;
+use std::marker::PhantomData;
 use std::str::FromStr;
 use std::string::String;
 
@@ -13,11 +14,15 @@ pub enum GetMemoryLocationError {
 
 #[derive(Debug)]
 pub enum Error {
-    WrongNumberOfArgs { actual: usize, expected: usize },
+    WrongNumberOfArgs {
+        actual: usize,
+        expected: &'static [usize],
+    },
     InvalidRegisterArg(GetRegisterError),
     InvalidImmediateArg(InvalidImmediate),
     InvalidMemoryLocationArg(GetMemoryLocationError),
     InvalidInstructionName(String),
+    InvalidFenceArgument(String),
 }
 
 struct Opcode(u32);
@@ -68,33 +73,82 @@ impl Funct7 {
 }
 
 #[derive(Debug)]
+struct Fm(u32);
+
+impl Fm {
+    pub fn from_u32(funct7: u32) -> Option<Self> {
+        if funct7 & !0xF == 0 {
+            Some(Self(funct7))
+        } else {
+            None
+        }
+    }
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Debug)]
+struct FenceArg<T>(u32, PhantomData<T>);
+
+impl<T> FenceArg<T> {
+    pub fn from_u32(arg: u32) -> Option<Self> {
+        if arg & !0xF == 0 {
+            Some(Self(arg, PhantomData))
+        } else {
+            None
+        }
+    }
+    pub fn to_u32(&self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Debug)]
+struct FencePredecessor;
+
+#[derive(Debug)]
+struct FenceSuccessor;
+
+#[derive(Debug)]
 pub struct U {
-    pub args: (Register<Rd>, Immediate<immediate::U>),
+    args: (Register<Rd>, Immediate<immediate::U>),
 }
 
 #[derive(Debug)]
 pub struct J {
-    pub args: (Register<Rd>, Immediate<immediate::J>),
+    args: (Register<Rd>, Immediate<immediate::J>),
 }
 
 #[derive(Debug)]
 pub struct I {
-    pub args: (Register<Rd>, Register<Rs1>, Immediate<immediate::I>),
+    args: (Register<Rd>, Register<Rs1>, Immediate<immediate::I>),
+}
+
+#[derive(Debug)]
+pub struct Fence {
+    args: (
+        Register<Rs1>,
+        Register<Rs1>,
+        FenceArg<FenceSuccessor>,
+        FenceArg<FencePredecessor>,
+        Fm,
+    ),
 }
 
 #[derive(Debug)]
 pub struct S {
-    pub args: (Register<Rs1>, Register<Rs2>, Immediate<immediate::S>),
+    args: (Register<Rs1>, Register<Rs2>, Immediate<immediate::S>),
 }
 
 #[derive(Debug)]
 pub struct R {
-    pub args: (Register<Rd>, Register<Rs1>, Register<Rs2>),
+    args: (Register<Rd>, Register<Rs1>, Register<Rs2>),
 }
 
 #[derive(Debug)]
 pub struct B {
-    pub args: (Register<Rs1>, Register<Rs2>, Immediate<immediate::B>),
+    args: (Register<Rs1>, Register<Rs2>, Immediate<immediate::B>),
 }
 
 #[derive(Debug)]
@@ -133,6 +187,8 @@ pub enum Instruction {
     Sra(R),
     Or(R),
     And(R),
+    Fence(Fence),
+    FenceI(I),
 }
 
 #[derive(Debug)]
@@ -143,6 +199,7 @@ pub enum Format {
     B,
     R,
     S,
+    Fence,
 }
 
 trait Placeable {
@@ -266,12 +323,36 @@ impl Placeable for Funct7 {
     }
 }
 
+impl Placeable for Fm {
+    const MASK: u32 = 0xF0000000;
+
+    fn place_unchecked(&self) -> u32 {
+        self.to_u32() << 28
+    }
+}
+
+impl Placeable for FenceArg<FenceSuccessor> {
+    const MASK: u32 = 0x00F00000;
+
+    fn place_unchecked(&self) -> u32 {
+        self.to_u32() << 20
+    }
+}
+
+impl Placeable for FenceArg<FencePredecessor> {
+    const MASK: u32 = 0x0F000000;
+
+    fn place_unchecked(&self) -> u32 {
+        self.to_u32() << 24
+    }
+}
+
 impl U {
     fn from_args(args: &[&str]) -> Result<Self, Error> {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: 2,
+                expected: &[2],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -305,7 +386,7 @@ impl J {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: 2,
+                expected: &[2],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -369,7 +450,7 @@ impl I {
         if args.len() != 3 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: 3,
+                expected: &[3],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -386,7 +467,7 @@ impl I {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: 2,
+                expected: &[2],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -423,7 +504,7 @@ impl S {
         if args.len() != 2 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: 2,
+                expected: &[2],
             })
         } else {
             let rs2 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -459,7 +540,7 @@ impl R {
         if args.len() != 3 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: 3,
+                expected: &[3],
             })
         } else {
             let rd = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -497,7 +578,7 @@ impl B {
         if args.len() != 3 {
             Result::Err(Error::WrongNumberOfArgs {
                 actual: args.len(),
-                expected: 3,
+                expected: &[3],
             })
         } else {
             let rs1 = Register::from_str(args[0]).map_err(Error::InvalidRegisterArg)?;
@@ -530,10 +611,124 @@ impl fmt::Display for B {
     }
 }
 
+impl<T> FromStr for FenceArg<T> {
+    type Err = ();
+
+    fn from_str<'a>(mut arg: &str) -> Result<Self, ()> {
+        // TODO: surely we can make this nicer?
+        let mut fence_arg = 0;
+        let mut possible_characters: &[char] = &['i', 'o', 'r', 'w'];
+
+        while let Some((c, rest)) = possible_characters.split_first() {
+            possible_characters = rest;
+            fence_arg <<= 1;
+            if arg.contains(*c) {
+                if arg.starts_with(*c) {
+                    fence_arg |= 1;
+                    let tuple = arg.split_at(1);
+                    arg = tuple.1;
+                } else {
+                    return Err(());
+                }
+            }
+        }
+        Ok(FenceArg::from_u32(fence_arg).unwrap())
+    }
+}
+
+impl Fence {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        if args.len() == 0 {
+            Ok(Fence {
+                args: (
+                    Register::from_u32(0).unwrap(),
+                    Register::from_u32(0).unwrap(),
+                    FenceArg::from_u32(0b1111).unwrap(),
+                    FenceArg::from_u32(0b1111).unwrap(),
+                    Fm::from_u32(0).unwrap(),
+                ),
+            })
+        } else if args.len() == 2 {
+            let pred: FenceArg<FencePredecessor> = args[0]
+                .parse()
+                .or(Err(Error::InvalidFenceArgument(args[0].to_string())))?;
+            let succ: FenceArg<FenceSuccessor> = args[1]
+                .parse()
+                .or(Err(Error::InvalidFenceArgument(args[0].to_string())))?;
+
+            Ok(Fence {
+                args: (
+                    Register::from_u32(0).unwrap(),
+                    Register::from_u32(0).unwrap(),
+                    succ,
+                    pred,
+                    Fm::from_u32(0).unwrap(),
+                ),
+            })
+        } else {
+            Err(Error::WrongNumberOfArgs {
+                actual: args.len(),
+                expected: &[0, 2],
+            })
+        }
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
+        let (rd, rs1, succ, pred, rm) = &self.args;
+        opcode.place()
+            | rd.place()
+            | funct3.place()
+            | rs1.place()
+            | succ.place()
+            | pred.place()
+            | rm.place()
+    }
+}
+
+impl fmt::Display for Fence {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (_, _, succ, pred, _) = &self.args;
+
+        let to_fence_arg = |bits| {
+            [
+                if (bits & 0b1000) == 0 { "" } else { "i" },
+                if (bits & 0b0100) == 0 { "" } else { "o" },
+                if (bits & 0b0010) == 0 { "" } else { "r" },
+                if (bits & 0b0001) == 0 { "" } else { "w" },
+            ]
+            .concat()
+        };
+
+        write!(
+            f,
+            "{pred}, {succ}",
+            pred = to_fence_arg(pred.to_u32()),
+            succ = to_fence_arg(succ.to_u32())
+        )
+    }
+}
+
+fn parse_no_args(args: &[&str]) -> Result<I, Error> {
+    if args.len() == 0 {
+        Ok(I {
+            args: (
+                Register::from_u32(0).unwrap(),
+                Register::from_u32(0).unwrap(),
+                Immediate::from_i32(0).unwrap(),
+            ),
+        })
+    } else {
+        Err(Error::WrongNumberOfArgs {
+            actual: args.len(),
+            expected: &[0],
+        })
+    }
+}
+
 impl FromStr for Instruction {
     type Err = Error;
 
-    fn from_str<'a>(mnemonic: &str) -> Result<Instruction, Error> {
+    fn from_str<'a>(mnemonic: &str) -> Result<Self, Error> {
         let mnemonic = mnemonic.trim();
 
         let first_space_index = mnemonic.find(' ').unwrap_or(mnemonic.len());
@@ -581,6 +776,8 @@ impl FromStr for Instruction {
             "sra" => R::from_args(&args).map(Instruction::Sra),
             "or" => R::from_args(&args).map(Instruction::Or),
             "and" => R::from_args(&args).map(Instruction::And),
+            "fence" => Fence::from_args(&args).map(Instruction::Fence),
+            "fence.i" => parse_no_args(&args).map(Instruction::FenceI),
             _ => Err(Error::InvalidInstructionName(name.to_string())),
         }
     }
@@ -623,6 +820,8 @@ impl fmt::Display for Instruction {
             Instruction::Sra(r) => write!(f, "sra {}", r),
             Instruction::Or(r) => write!(f, "or {}", r),
             Instruction::And(r) => write!(f, "and {}", r),
+            Instruction::Fence(i) => write!(f, "fence {}", i),
+            Instruction::FenceI(i) => write!(f, "fence.i {}", i),
         }
     }
 }
@@ -767,6 +966,14 @@ impl Instruction {
                 &Funct3::from_u32(0b111).unwrap(),
                 &Funct7::from_u32(0b0000000).unwrap(),
             ),
+            Instruction::Fence(f) => f.to_u32(
+                &Opcode::from_u32(0b0001111).unwrap(),
+                &Funct3::from_u32(0b000).unwrap(),
+            ),
+            Instruction::FenceI(i) => i.to_u32(
+                &Opcode::from_u32(0b0001111).unwrap(),
+                &Funct3::from_u32(0b001).unwrap(),
+            ),
         }
     }
 
@@ -806,6 +1013,8 @@ impl Instruction {
             Instruction::Sra(_) => Format::R,
             Instruction::Or(_) => Format::R,
             Instruction::And(_) => Format::R,
+            Instruction::Fence(_) => Format::Fence,
+            Instruction::FenceI(_) => Format::I,
         }
     }
 }

@@ -1,7 +1,7 @@
 //top_sim.v
 //Top level simulation, linking cpu with data and instruction memory
 
-`include "uart/baudgen.vh"
+`include "baudgen.vh"
 
 module top_sim(CLOCK, led, tx, rx);
 	input CLOCK;

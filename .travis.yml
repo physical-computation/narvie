@@ -1,0 +1,29 @@
+language: rust
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+
+cache: cargo
+
+
+before_install:
+  - cd subdirectory
+
+deploy:
+  provider: releases
+  api_key:
+    secure: d78e4675e7fd26d945a0c5388e2039e544a0157b
+  file_glob: true
+  file: target/debug/narvie
+  skip_cleanup: true
+  draft: true
+  on:
+    repo: https://github.com/physical-computation/narvie
+    branch: master

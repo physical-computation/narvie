@@ -1,3 +1,0 @@
-#!/bin/bash
-
-rm rv32i_ice40.blif rv32i_ice40.asc rv32i_ice40.bin

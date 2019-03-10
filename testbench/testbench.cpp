@@ -28,12 +28,12 @@ void TESTBENCH::tick(void)
 
 	if (m_is_evaluating)
 	{
-		if (m_core.v__DOT__m__DOT__register_files__DOT__instruction_rcv)
+		if (m_core.top_sim__DOT__m__DOT__register_files__DOT__instruction_rcv)
 		{
 			m_evalStart = m_tickcount;
 		}
 
-		if (m_core.v__DOT__m__DOT__register_files__DOT__send_regfile)
+		if (m_core.top_sim__DOT__m__DOT__register_files__DOT__send_regfile)
 		{
 			m_txStart = m_tickcount;
 			m_is_tx = true;

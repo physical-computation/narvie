@@ -25,6 +25,8 @@ impl<R> Register<R> {
     pub const ZERO: Register<R> = Register(0, PhantomData);
 }
 
+pub const GPR_COUNT: u32 = 32;
+
 #[derive(Debug)]
 pub enum GetRegisterError {
     InvalidRegisterLiteral(String),

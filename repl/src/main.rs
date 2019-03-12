@@ -14,7 +14,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use clap::{App, Arg};
 use directories::ProjectDirs;
 use lib::instruction::{self, Instruction};
-use lib::register::Register;
+use lib::register::{self, Register};
 use log::{debug, error, info, warn};
 use prettytable::*;
 
@@ -144,56 +144,51 @@ fn format_binary_instruction(inst: &Instruction) -> Vec<String> {
 }
 
 fn assembly_table(instruction: &Instruction) -> prettytable::Table {
-    let mut table = prettytable::Table::new();
-    table.set_format(*prettytable::format::consts::FORMAT_BOX_CHARS);
-
-    let mut header_row = vec!["Mnemonic"];
-    header_row.extend_from_slice(format_headers(&instruction.to_format()));
-
-    let mut instruction_row = vec![instruction.to_string()];
-
-    instruction_row.extend(format_binary_instruction(&instruction));
-
-    table.add_row(prettytable::Row::new(
-        header_row.into_iter().map(prettytable::Cell::new).collect(),
-    ));
-    table.add_row(prettytable::Row::new(
-        instruction_row
+    let mut header_row = prettytable::row!["Mnemonic"];
+    header_row.extend(
+        format_headers(&instruction.to_format())
             .into_iter()
-            .map(|s| prettytable::Cell::new(s.as_str()))
-            .collect(),
-    ));
+            .map(|s| prettytable::Cell::new(s)),
+    );
+
+    let mut instruction_row = prettytable::row![instruction];
+    instruction_row.extend(
+        format_binary_instruction(&instruction)
+            .into_iter()
+            .map(|s| prettytable::Cell::new(&s)),
+    );
+
+    let mut table = prettytable::Table::init(vec![header_row, instruction_row]);
+
+    table.set_format(*prettytable::format::consts::FORMAT_BOX_CHARS);
     table
 }
 
 fn reg_file_table(reg_file: &[u32; 32]) -> prettytable::Table {
-    let mut table = prettytable::Table::new();
-    table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
-
-    table.add_row(prettytable::Row::new(
-        (0..2)
+    const COLUMNS: u32 = 2;
+    const ROWS: u32 = register::GPR_COUNT / 2;
+    if ROWS * COLUMNS != register::GPR_COUNT {
+        panic!("Expected an even number of registers");
+    }
+    let mut table = prettytable::Table::init(vec![prettytable::Row::new(
+        (0..COLUMNS)
             .map(|i| {
-                let mut side = prettytable::table!(["Name", "ABI", "Value"]);
-                side.set_format(*prettytable::format::consts::FORMAT_BOX_CHARS);
-
-                for j in 0..16 {
-                    let reg_index = i * 16 + j;
-                    let mut row = [
+                let mut side_table = prettytable::table!(["Name", "ABI", "Value"]);
+                side_table.extend((0..ROWS).map(|j| {
+                    let reg_index = i * ROWS + j;
+                    prettytable::row![
                         format!("x{}", reg_index),
                         Register::<()>::from_u32(reg_index).unwrap().abi_name(),
                         format!("0x{:08X}", reg_file[reg_index as usize]),
-                    ];
+                    ]
+                }));
 
-                    side.add_row(prettytable::Row::new(
-                        row.into_iter().map(|s| prettytable::cell!(s)).collect(),
-                    ));
-                }
-
-                prettytable::cell!(side)
+                side_table.set_format(*prettytable::format::consts::FORMAT_BOX_CHARS);
+                prettytable::cell!(side_table)
             })
             .collect::<Vec<prettytable::Cell>>(),
-    ));
-
+    )]);
+    table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
     table
 }
 

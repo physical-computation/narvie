@@ -21,8 +21,10 @@ use prettytable::*;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::error::Error;
+use std::fmt::{self, Debug, Display};
 use std::fs::{self, File};
 use std::io;
+use std::net::TcpStream;
 use std::path::Path;
 use std::process;
 use std::str::FromStr;
@@ -44,9 +46,27 @@ where
 }
 
 struct SerialLogger<'a, S: io::Read + io::Write> {
-    stream: &'a mut S,
+    stream: S,
     logger: Option<&'a mut io::Write>,
 }
+
+trait ReadWrite: io::Read + io::Write {}
+impl<T: io::Read + io::Write> ReadWrite for T {}
+
+struct NarviePortError {}
+
+impl Display for NarviePortError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Narvie Port Error!")
+    }
+}
+
+impl Debug for NarviePortError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+impl Error for NarviePortError {}
 
 impl<'a, S: io::Read + io::Write> io::Read for SerialLogger<'a, S> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
@@ -270,6 +290,100 @@ where
     f
 }
 
+fn narvie_port(matches: &clap::ArgMatches) -> Result<Box<dyn ReadWrite>, Box<Error>> {
+    if let Some(tcp_port) = matches.value_of("tcp-port") {
+        let tcp_port = tcp_port.parse::<u16>().map_err(|e| {
+            error!("Port for tcp must be a positive integer");
+            Box::new(e)
+        })?;
+
+        TcpStream::connect(("localhost", tcp_port))
+            .map_err(|e| {
+                error!(
+                    "
+narvie cannot connect to tcp port {}!
+
+Check that a simulation of the narvie processor is running and the that you
+are using the correct port address. Then run the narvie CLI again.",
+                    tcp_port
+                );
+                debug!("Error details: {:?}", e);
+                Box::new(e).into()
+            })
+            .map(Box::new)
+            .map(|b| Box::<dyn ReadWrite>::from(b))
+    } else {
+        let address = matches.value_of("address").ok_or_else(|| {
+            if let Ok(ports) = serialport::available_ports() {
+                if ports.is_empty() {
+                    println!(
+                        "
+The narvie CLI requires a connection to a narvie processor to evaluate RISC-V
+instructions. However, your computer does not list any available serialport
+connections. Ensure that a narvie processor is plugged into your computer and
+try again.
+
+If you don't have a narvie processor to hand, use --assembly-only to see how
+narvie works!"
+                    );
+                } else {
+                    println!(
+                        "Please provide narvie with the address of your serial port!
+Maybe try one of these:"
+                    );
+                    for (i, info) in ports.iter().enumerate() {
+                        println!("    {}: {}", i + 1, info.port_name);
+                    }
+                }
+            }
+            println!("\n{}", matches.usage());
+            Box::new(NarviePortError {})
+        })?;
+
+        let baud = matches
+            .value_of("baud")
+            .and_then(|input| input.parse::<u32>().ok())
+            .ok_or_else(|| {
+                error!("Parameter --baud must be an integer");
+                Box::new(NarviePortError {})
+            })?;
+
+        serialport::open_with_settings(
+            address,
+            &serialport::SerialPortSettings {
+                baud_rate: baud,
+                data_bits: serialport::DataBits::Eight,
+                flow_control: serialport::FlowControl::None,
+                parity: serialport::Parity::None,
+                stop_bits: serialport::StopBits::One,
+                timeout: Duration::from_millis(500),
+            },
+        )
+        .map_err(|e: serialport::Error| {
+            let header = "Cannot connect to narvie processor!";
+            if e.description == "Permission denied" {
+                error!(
+                    "{}
+\tIt may be that narvie does not have permission to access your serial port.
+\tTry running `$ sudo chmod 666 {}`",
+                    header, address,
+                );
+            } else {
+                error!(
+                    "{}
+\tCheck the processor is running and the that you are using the
+\tcorrect address. Then run the narvie CLI again.",
+                    header
+                );
+            }
+            debug!("Error details: {:?}", e);
+            Box::new(e).into()
+        })
+        .map(Box::new)
+        .map(|b| Box::<dyn ReadWrite>::from(b))
+    }
+}
+
 fn main() {
     stderrlog::new()
         .module(module_path!())
@@ -302,7 +416,14 @@ fn main() {
             Arg::with_name("address")
                 .value_name("address")
                 .takes_value(true)
-                .help("serial port port address"),
+                .help("serial port port address."),
+        )
+        .arg(
+            Arg::with_name("tcp-port")
+                .value_name("PORT")
+                .takes_value(true)
+                .long("tcp")
+                .help("Listen over tcp at port PORT instead of a serialport."),
         )
         .arg(
             Arg::with_name("baud")
@@ -315,7 +436,7 @@ fn main() {
         .arg(
             Arg::with_name("assemble-only")
                 .long("assemble-only")
-                .help("Only assemble mnemonics, do not evaluate them"),
+                .help("Only assemble mnemonics, do not evaluate them."),
         )
         .get_matches();
 
@@ -337,32 +458,6 @@ fn main() {
             process::exit(1)
         });
     } else {
-        let address = matches
-            .value_of("address")
-            .unwrap_or_else(|| {
-                println!("Narvie requires use of a serial port!");
-                if let Ok(ports) = serialport::available_ports() {
-                    if ports.is_empty() {
-                        println!("No available ports could be found - make sure a narvie\nprocessor is plugged into your computer!");
-                    } else {
-                        println!("Maybe you could try one of these available ports?");
-                        for (i, info) in ports.iter().enumerate() {
-                            println!("    {}: {}", i + 1, info.port_name);
-                        }
-                    }
-                }
-                println!("\n{}", matches.usage());
-                process::exit(1);
-            });
-
-        let baud = matches
-            .value_of("baud")
-            .and_then(|input| input.parse::<u32>().ok())
-            .unwrap_or_else(|| {
-                error!("Parameter --baud must be an integer");
-                process::exit(1);
-            });
-
         let mut logger = log_file.and_then(|p| {
             File::create(&p)
                 .map_err(|e| warn!("Could not open log file: {:?}", e))
@@ -373,41 +468,8 @@ fn main() {
                 .ok()
         });
 
-        let mut serialport = serialport::open_with_settings(
-            address,
-            &serialport::SerialPortSettings {
-                baud_rate: baud,
-                data_bits: serialport::DataBits::Eight,
-                flow_control: serialport::FlowControl::None,
-                parity: serialport::Parity::None,
-                stop_bits: serialport::StopBits::One,
-                timeout: Duration::from_millis(500),
-            },
-        )
-        .unwrap_or_else(|e| {
-            let header = "Cannot connect to narvie processor!";
-            if e.description == "Permission denied" {
-                error!(
-                    "{}
-    It may be that narvie does not have permission to access your serial port.
-    Try running `$ sudo chmod 666 {}`",
-                    header,
-                    address,
-                );
-            } else {
-                error!(
-                    "{}
-    Check the processor is running and the that you are using the
-    correct address. Then run the narvie CLI again.",
-                    header
-                );
-            }
-            debug!("Error details: {:?}", e);
-            process::exit(1)
-        });
-
         let mut stream = SerialLogger {
-            stream: &mut serialport,
+            stream: narvie_port(&matches).unwrap_or_else(|_| process::exit(1)),
             logger: logger.as_mut().map(|f| (f as &mut io::Write)),
         };
 

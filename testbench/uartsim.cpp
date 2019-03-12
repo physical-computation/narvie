@@ -54,7 +54,7 @@ void UARTSIM::setup_listener(const int port)
 
 	signal(SIGPIPE, SIG_IGN);
 
-	printf("Listening on port %d\n", port);
+	fprintf(stderr, "Listening on port %d\n", port);
 
 	m_skt = socket(AF_INET, SOCK_STREAM, 0);
 	if (m_skt < 0)
@@ -163,7 +163,6 @@ void UARTSIM::check_for_new_connections(void)
 
 			if (m_conrd < 0)
 				perror("Accept failed:");
-			// else printf("New connection accepted!\n");
 		}
 	}
 }
@@ -254,6 +253,8 @@ int UARTSIM::rawtick(const int i_tx, const bool network)
 				nr = read(m_conrd, buf, 1);
 			if (1 == nr)
 			{
+
+				fprintf(stderr, "TX! %d\n", buf[0]);
 				m_tx_data = (-1 << (m_nbits + m_nparity + 1))
 							// << nstart_bits
 							| ((buf[0] << 1) & 0x01fe);
@@ -285,7 +286,6 @@ int UARTSIM::rawtick(const int i_tx, const bool network)
 			{
 				close(m_conrd);
 				m_conrd = m_conwr = -1;
-				// printf("Closing network connection\n");
 			}
 			else if (nr < 0)
 			{

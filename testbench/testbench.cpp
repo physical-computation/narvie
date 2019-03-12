@@ -46,10 +46,10 @@ void TESTBENCH::tick(void)
 
 		if (m_tx_byte_count == 128)
 		{
-			printf("RX from %9lu, for %4lu cycles. ", m_rxStart, m_evalStart - m_rxStart);
-			printf("EX from %9lu, for %2lu cycles. ", m_evalStart, m_txStart - m_evalStart);
-			printf("TX from %9lu, for %6lu cycles. ", m_txStart, m_tickcount - m_txStart);
-			printf(" In total this is %6lu cycles.\n", m_tickcount - m_rxStart);
+			fprintf(stderr, "RX from %9lu, for %4lu cycles. ", m_rxStart, m_evalStart - m_rxStart);
+			fprintf(stderr, "EX from %9lu, for %2lu cycles. ", m_evalStart, m_txStart - m_evalStart);
+			fprintf(stderr, "TX from %9lu, for %6lu cycles. ", m_txStart, m_tickcount - m_txStart);
+			fprintf(stderr, " In total this is %6lu cycles.\n", m_tickcount - m_rxStart);
 
 			m_is_evaluating = false;
 			m_tx_byte_count = 0;

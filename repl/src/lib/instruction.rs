@@ -310,7 +310,7 @@ impl Placeable for Opcode {
 }
 
 impl Placeable for Funct3 {
-    const MASK: u32 = 0x3000;
+    const MASK: u32 = 0x7000;
 
     fn place_unchecked(&self) -> u32 {
         self.to_u32() << 12

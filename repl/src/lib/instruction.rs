@@ -150,6 +150,15 @@ pub struct B {
 }
 
 #[derive(Debug)]
+pub struct Shift {
+    args: (
+        Register<Rd>,
+        Register<Rs1>,
+        Immediate<immediate::ShiftAmount>,
+    ),
+}
+
+#[derive(Debug)]
 pub enum Instruction {
     Lui(U),
     Auipc(U),
@@ -175,6 +184,9 @@ pub enum Instruction {
     Xori(I),
     Ori(I),
     Andi(I),
+    Slli(Shift),
+    Srli(Shift),
+    Srai(Shift),
     Add(R),
     Sub(R),
     Sll(R),
@@ -198,6 +210,7 @@ pub enum Format {
     R,
     S,
     Fence,
+    Shift,
 }
 
 trait Placeable {
@@ -298,6 +311,14 @@ impl Placeable for Immediate<immediate::B> {
             | ((imm_ & 0b0011111100000) << 20)
             | ((imm_ & 0b0000000011110) << 07)
             | ((imm_ & 0b0100000000000) >> 04)
+    }
+}
+
+impl Placeable for Immediate<immediate::ShiftAmount> {
+    const MASK: u32 = 0x01F00000;
+
+    fn place_unchecked(&self) -> u32 {
+        (self.to_i32() as u32) << 20
     }
 }
 
@@ -736,6 +757,52 @@ impl fmt::Display for Fence {
     }
 }
 
+impl Shift {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                None,
+                Some(|rd: &str, rs1: &str, shamt: &str| {
+                    let rd: Register<Rd> = rd
+                        .parse()
+                        .or(Err(Error::InvalidFenceArgument(rd.to_string())))?;
+                    let rs1: Register<Rs1> = rs1
+                        .parse()
+                        .or(Err(Error::InvalidFenceArgument(rs1.to_string())))?;
+                    let shamt: Immediate<immediate::ShiftAmount> = shamt
+                        .parse()
+                        .or(Err(Error::InvalidFenceArgument(shamt.to_string())))?;
+
+                    Ok(Self {
+                        args: (rd, rs1, shamt),
+                    })
+                }),
+            ),
+        )
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3, funct7: &Funct7) -> u32 {
+        let (shamt, rs1, rd) = &self.args;
+        opcode.place() | rd.place() | funct3.place() | rs1.place() | shamt.place() | funct7.place()
+    }
+}
+impl fmt::Display for Shift {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (rd, rs1, shamt) = &self.args;
+
+        write!(
+            f,
+            "{rd}, {rs1}, {shamt}",
+            rd = rd.to_u32(),
+            rs1 = rs1.to_u32(),
+            shamt = shamt.to_i32(),
+        )
+    }
+}
+
 fn parse_help<In>(
     args: &[&str],
     (f0, f1, f2, f3): (
@@ -876,6 +943,9 @@ impl FromStr for Instruction {
             "xori" => I::from_args(&args).map(Instruction::Xori),
             "ori" => I::from_args(&args).map(Instruction::Ori),
             "andi" => I::from_args(&args).map(Instruction::Andi),
+            "slli" => Shift::from_args(&args).map(Instruction::Slli),
+            "srli" => Shift::from_args(&args).map(Instruction::Srli),
+            "srai" => Shift::from_args(&args).map(Instruction::Srai),
             "add" => R::from_args(&args).map(Instruction::Add),
             "sub" => R::from_args(&args).map(Instruction::Sub),
             "sll" => R::from_args(&args).map(Instruction::Sll),
@@ -923,6 +993,9 @@ impl fmt::Display for Instruction {
             Instruction::Xori(i) => write!(f, "xori {}", i),
             Instruction::Ori(i) => write!(f, "ori {}", i),
             Instruction::Andi(i) => write!(f, "andi {}", i),
+            Instruction::Slli(sh) => write!(f, "slli {}", sh),
+            Instruction::Srli(sh) => write!(f, "srli {}", sh),
+            Instruction::Srai(sh) => write!(f, "srai {}", sh),
             Instruction::Add(r) => write!(f, "add {}", r),
             Instruction::Sub(r) => write!(f, "sub {}", r),
             Instruction::Sll(r) => write!(f, "sll {}", r),
@@ -1029,6 +1102,21 @@ impl Instruction {
                 &Opcode::from_u32(0b0010011).unwrap(),
                 &Funct3::from_u32(0b111).unwrap(),
             ),
+            Instruction::Slli(sh) => sh.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b001).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Srli(sh) => sh.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b101).unwrap(),
+                &Funct7::from_u32(0b0000000).unwrap(),
+            ),
+            Instruction::Srai(sh) => sh.to_u32(
+                &Opcode::from_u32(0b0010011).unwrap(),
+                &Funct3::from_u32(0b101).unwrap(),
+                &Funct7::from_u32(0b0100000).unwrap(),
+            ),
             Instruction::Add(r) => r.to_u32(
                 &Opcode::from_u32(0b0110011).unwrap(),
                 &Funct3::from_u32(0b000).unwrap(),
@@ -1116,6 +1204,9 @@ impl Instruction {
             Instruction::Xori(_) => Format::I,
             Instruction::Ori(_) => Format::I,
             Instruction::Andi(_) => Format::I,
+            Instruction::Slli(_) => Format::Shift,
+            Instruction::Srli(_) => Format::Shift,
+            Instruction::Srai(_) => Format::Shift,
             Instruction::Add(_) => Format::R,
             Instruction::Sub(_) => Format::R,
             Instruction::Sll(_) => Format::R,

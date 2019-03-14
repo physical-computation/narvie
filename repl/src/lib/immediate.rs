@@ -21,6 +21,8 @@ pub struct I;
 pub struct S;
 #[derive(Debug)]
 pub struct B;
+#[derive(Debug)]
+pub struct ShiftAmount;
 
 impl Constraints for U {
     const MAX: i32 = (1 << 20) - 1;
@@ -50,6 +52,12 @@ impl Constraints for B {
     const MAX: i32 = (1 << 12) - 1;
     const MIN: i32 = -(1 << 12);
     const EVEN: bool = true;
+}
+
+impl Constraints for ShiftAmount {
+    const MAX: i32 = 31;
+    const MIN: i32 = 0;
+    const EVEN: bool = false;
 }
 
 #[derive(Debug)]

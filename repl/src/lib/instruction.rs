@@ -199,6 +199,8 @@ pub enum Instruction {
     And(R),
     Fence(Fence),
     FenceI(I),
+    Ecall(I),
+    Ebreak(I),
 }
 
 #[derive(Debug)]
@@ -958,6 +960,8 @@ impl FromStr for Instruction {
             "and" => R::from_args(&args).map(Instruction::And),
             "fence" => Fence::from_args(&args).map(Instruction::Fence),
             "fence.i" => parse_no_args(&args).map(Instruction::FenceI),
+            "ecall" => parse_no_args(&args).map(Instruction::Ecall),
+            "ebreak" => parse_no_args(&args).map(Instruction::Ebreak),
             // Psudo instructions
             "nop" => parse_no_args(&args).map(Instruction::Addi),
             "li" => parse_li(&args).map(Instruction::Addi),
@@ -1007,7 +1011,9 @@ impl fmt::Display for Instruction {
             Instruction::Or(r) => write!(f, "or {}", r),
             Instruction::And(r) => write!(f, "and {}", r),
             Instruction::Fence(i) => write!(f, "fence {}", i),
-            Instruction::FenceI(i) => write!(f, "fence.i {}", i),
+            Instruction::FenceI(_) => write!(f, "fence.i"),
+            Instruction::Ecall(_) => write!(f, "ecall"),
+            Instruction::Ebreak(_) => write!(f, "ebreak"),
         }
     }
 }
@@ -1175,6 +1181,8 @@ impl Instruction {
                 &Opcode::from_u32(0b0001111).unwrap(),
                 &Funct3::from_u32(0b001).unwrap(),
             ),
+            Instruction::Ecall(_) => 0b000000000000_00000_000_00000_1110011,
+            Instruction::Ebreak(_) => 0b000000000001_00000_000_00000_1110011,
         }
     }
 
@@ -1219,6 +1227,8 @@ impl Instruction {
             Instruction::And(_) => Format::R,
             Instruction::Fence(_) => Format::Fence,
             Instruction::FenceI(_) => Format::I,
+            Instruction::Ecall(_) => Format::I,
+            Instruction::Ebreak(_) => Format::I,
         }
     }
 }

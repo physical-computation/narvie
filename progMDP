@@ -7,7 +7,7 @@ source ../module-list.sh
 
 PROJECT=rv32i_ice40MDP
 
-yosys -p "synth_ice40 -blif ../$PROJECT.blif;" $MODULES ../top.v
+yosys -p "synth_ice40 -blif ../$PROJECT.blif;" $MODULES $NARVIE_VERILOG/top.v
 
 arachne-pnr -d 5k -P uwg30 -p ../$PROJECT.pcf ../$PROJECT.blif -o ../$PROJECT.asc
 

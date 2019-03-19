@@ -146,22 +146,43 @@ fn format_binary_instruction(inst: &Instruction) -> Vec<String> {
 }
 
 fn assembly_table(instruction: &Instruction) -> prettytable::Table {
-    let mut header_row = prettytable::row!["Mnemonic"];
-    header_row.extend(
+    let breakdown_format =
+        prettytable::format::FormatBuilder::from(*prettytable::format::consts::FORMAT_CLEAN)
+            .padding(1, 1)
+            .separator(
+                prettytable::format::LinePosition::Intern,
+                prettytable::format::LineSeparator::new(' ', '│', ' ', ' '),
+            )
+            .column_separator('│')
+            .build();
+
+    let titles = prettytable::row![c => "Mnemonic", "Hexadecimal", "Binary"];
+
+    let instruction_headers = prettytable::Row::new(
         format_headers(&instruction.to_format())
             .into_iter()
-            .map(|s| prettytable::Cell::new(s)),
+            .map(|s| prettytable::Cell::new_align(&s, prettytable::format::Alignment::CENTER))
+            .collect(),
     );
 
-    let mut instruction_row = prettytable::row![instruction];
-    instruction_row.extend(
+    let instruction_bits = prettytable::Row::new(
         format_binary_instruction(&instruction)
             .into_iter()
-            .map(|s| prettytable::Cell::new(&s)),
+            .map(|s| prettytable::Cell::new_align(&s, prettytable::format::Alignment::CENTER))
+            .collect(),
     );
 
-    let mut table = prettytable::Table::init(vec![header_row, instruction_row]);
+    let mut binary_breakdown =
+        prettytable::Table::init(vec![instruction_headers, instruction_bits]);
+    binary_breakdown.set_format(breakdown_format);
 
+    let mut table = prettytable::Table::init(vec![row![c =>
+        format!("\n{}", instruction),
+        format!("\n{:08X}", instruction.to_u32()),
+        binary_breakdown,
+    ]]);
+
+    table.set_titles(titles);
     table.set_format(*prettytable::format::consts::FORMAT_BOX_CHARS);
     table
 }

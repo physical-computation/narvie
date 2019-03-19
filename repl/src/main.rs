@@ -320,7 +320,7 @@ instructions. However, your computer does not list any available serialport
 connections. Ensure that a narvie processor is plugged into your computer and
 try again.
 
-If you don't have a narvie processor to hand, use --assembly-only to see how
+If you don't have a narvie processor to hand, use --assemble-only to see how
 narvie works!"
                     );
                 } else {

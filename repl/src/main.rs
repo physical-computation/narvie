@@ -17,7 +17,6 @@ use lib::instruction::{self, Instruction};
 use lib::register::{self, Register};
 use log::{debug, error, info, warn};
 use prettytable::*;
-
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::error::Error;
@@ -37,17 +36,9 @@ enum EvalInstructionError {
     Read(io::Error),
 }
 
-struct RunArgs<'a, F>
-where
-    F: FnMut(&'static str) -> Result<(), EvalInstructionError>,
-{
-    history_file_path: Option<&'a Path>,
-    evaluator: F,
-}
-
-struct SerialLogger<'a, S: io::Read + io::Write> {
+struct SerialLogger<S: io::Read + io::Write, L: io::Write> {
     stream: S,
-    logger: Option<&'a mut io::Write>,
+    logger: Option<L>,
 }
 
 trait ReadWrite: io::Read + io::Write {}
@@ -68,7 +59,7 @@ impl Debug for NarviePortError {
 }
 impl Error for NarviePortError {}
 
-impl<'a, S: io::Read + io::Write> io::Read for SerialLogger<'a, S> {
+impl<S: io::Read + io::Write, L: io::Write> io::Read for SerialLogger<S, L> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let res = self.stream.read(buf);
         if let Some(ref mut logger) = self.logger {
@@ -77,7 +68,7 @@ impl<'a, S: io::Read + io::Write> io::Read for SerialLogger<'a, S> {
         res
     }
 }
-impl<'a, S: io::Read + io::Write> io::Write for SerialLogger<'a, S> {
+impl<S: io::Read + io::Write, L: io::Write> io::Write for SerialLogger<S, L> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.stream.write(buf)
     }
@@ -239,15 +230,10 @@ where
     Ok(())
 }
 
-fn run<F>(args: RunArgs<F>) -> Result<(), Box<Error>>
+fn run<'a, F>(mut evaluator: F, history_file_path: Option<&'a Path>) -> Result<(), Box<Error>>
 where
     for<'b> F: FnMut(&'b str) -> Result<(), EvalInstructionError>,
 {
-    let RunArgs {
-        history_file_path,
-        mut evaluator,
-    } = args;
-
     let mut rl = Editor::<()>::new();
 
     if let Some(file) = history_file_path {
@@ -299,13 +285,6 @@ where
             Err(err) => return Err(Box::new(err)),
         }
     }
-}
-
-fn constrain<F>(f: F) -> F
-where
-    F: for<'a> FnMut(&'a str) -> Result<(), EvalInstructionError>,
-{
-    f
 }
 
 fn narvie_port(matches: &clap::ArgMatches) -> Result<Box<dyn ReadWrite>, Box<Error>> {
@@ -426,6 +405,8 @@ fn main() {
         })
         .unwrap_or((None, None));
 
+    let history_file_path = history_file.as_ref().map(|p| p.as_path());
+
     let matches = App::new("narve CLI")
         .version("0.1.0")
         .author("Harry Sarson <harry.sarson@hotmail.co.uk>")
@@ -458,25 +439,19 @@ fn main() {
         )
         .get_matches();
 
-    if matches.is_present("assemble-only") {
-        let evaluator = constrain(move |mnemonic| {
-            let instruction =
-                Instruction::from_str(mnemonic).map_err(EvalInstructionError::Parse)?;
+    (if matches.is_present("assemble-only") {
+        run(
+            move |mnemonic| {
+                let instruction =
+                    Instruction::from_str(mnemonic).map_err(EvalInstructionError::Parse)?;
 
-            assembly_table(&instruction).printstd();
-            Ok(())
-        });
-
-        run(RunArgs {
-            history_file_path: history_file.as_ref().map(|p| p.as_path()),
-            evaluator: evaluator,
-        })
-        .unwrap_or_else(|e| {
-            error!("Unrecognised error: {}", e);
-            process::exit(1)
-        });
+                assembly_table(&instruction).printstd();
+                Ok(())
+            },
+            history_file_path,
+        )
     } else {
-        let mut logger = log_file.and_then(|p| {
+        let logger = log_file.and_then(|p| {
             File::create(&p)
                 .map_err(|e| warn!("Could not open log file: {:?}", e))
                 .map(|l| {
@@ -488,18 +463,16 @@ fn main() {
 
         let mut stream = SerialLogger {
             stream: narvie_port(&matches).unwrap_or_else(|_| process::exit(1)),
-            logger: logger.as_mut().map(|f| (f as &mut io::Write)),
+            logger: logger,
         };
 
-        let evaluator = constrain(move |inst| eval_instruction(inst, &mut stream));
-
-        run(RunArgs {
-            history_file_path: history_file.as_ref().map(|p| p.as_path()),
-            evaluator,
-        })
-        .unwrap_or_else(|e| {
-            error!("Unrecognised error: {}", e);
-            process::exit(1)
-        })
-    }
+        run(
+            move |inst| eval_instruction(inst, &mut stream),
+            history_file_path,
+        )
+    })
+    .unwrap_or_else(|e| {
+        error!("Unrecognised error: {}", e);
+        process::exit(1)
+    });
 }

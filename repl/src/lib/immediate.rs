@@ -73,7 +73,7 @@ pub enum InvalidImmediate {
     NumericValue(ConstraintViolation),
 }
 
-fn constaint_violated<X: Constraints>(
+fn constraint_violated<X: Constraints>(
     Immediate(imm, PhantomData): &Immediate<X>,
 ) -> Option<ConstraintViolation> {
     if imm > &X::MAX {
@@ -90,7 +90,7 @@ fn constaint_violated<X: Constraints>(
 impl<X: Constraints> Immediate<X> {
     pub fn from_i32(number: i32) -> Result<Self, ConstraintViolation> {
         let imm = Self(number, PhantomData);
-        if let Some(violated) = constaint_violated(&imm) {
+        if let Some(violated) = constraint_violated(&imm) {
             Err(violated)
         } else {
             Ok(imm)

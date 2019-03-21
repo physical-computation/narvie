@@ -13,7 +13,7 @@ pub struct Rs2;
 
 impl<R> Register<R> {
     pub fn from_u32(imm: u32) -> Option<Register<R>> {
-        if imm < (1 << 5) {
+        if imm < GPR_COUNT {
             Some(Register(imm, PhantomData))
         } else {
             None

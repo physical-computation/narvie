@@ -13,13 +13,18 @@ pub enum GetMemoryLocationError {
 }
 
 #[derive(Debug)]
+pub enum InvalidArgument {
+    Register(GetRegisterError),
+    Immediate(InvalidImmediate),
+    MemoryLocation(GetMemoryLocationError),
+    Fence(String),
+}
+
+#[derive(Debug)]
 pub enum Error {
     WrongNumberOfArgs { actual: usize, expected: Vec<usize> },
-    InvalidRegisterArg(GetRegisterError),
-    InvalidImmediateArg(InvalidImmediate),
-    InvalidMemoryLocationArg(GetMemoryLocationError),
     InvalidInstructionName(String),
-    InvalidFenceArgument(String),
+    InvalidArgument(u32, InvalidArgument),
 }
 
 #[derive(Debug)]
@@ -380,8 +385,10 @@ impl U {
                 None,
                 None,
                 Some(|rd, imm| {
-                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
-                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
+                    let rd = Register::from_str(rd)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let imm = Immediate::from_str(imm)
+                        .map_err(|e| Error::InvalidArgument(1, InvalidArgument::Immediate(e)))?;
 
                     Ok(U { args: (rd, imm) })
                 }),
@@ -417,8 +424,10 @@ impl J {
                 None,
                 None,
                 Some(|rd, imm| {
-                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
-                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
+                    let rd = Register::from_str(rd)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let imm = Immediate::from_str(imm)
+                        .map_err(|e| Error::InvalidArgument(1, InvalidArgument::Immediate(e)))?;
 
                     Ok(J { args: (rd, imm) })
                 }),
@@ -446,34 +455,36 @@ impl fmt::Display for J {
     }
 }
 
-fn get_memory_argument<Im>(memory_location: &str) -> Result<(Register<Rs1>, Immediate<Im>), Error>
+fn get_memory_argument<Im>(
+    memory_location: &str,
+) -> Result<(Register<Rs1>, Immediate<Im>), InvalidArgument>
 where
     Im: immediate::Constraints,
 {
     let open_bracket_index = memory_location
         .find('(')
-        .ok_or(Error::InvalidMemoryLocationArg(
+        .ok_or(InvalidArgument::MemoryLocation(
             GetMemoryLocationError::MissingOpenParentheses,
         ))?;
 
     let close_bracket_index = memory_location
         .find(')')
-        .ok_or(Error::InvalidMemoryLocationArg(
+        .ok_or(InvalidArgument::MemoryLocation(
             GetMemoryLocationError::MissingCloseParentheses,
         ))?;
 
     if close_bracket_index != memory_location.len() - 1 {
         dbg!(memory_location);
-        return Err(Error::InvalidMemoryLocationArg(
+        return Err(InvalidArgument::MemoryLocation(
             GetMemoryLocationError::TextAfterCloseParenthesis,
         ));
     }
 
     let rs1 = Register::from_str(&memory_location[open_bracket_index + 1..close_bracket_index])
-        .map_err(Error::InvalidRegisterArg)?;
+        .map_err(InvalidArgument::Register)?;
 
     let offset = Immediate::from_str(&memory_location[0..open_bracket_index])
-        .map_err(Error::InvalidImmediateArg)?;
+        .map_err(InvalidArgument::Immediate)?;
     Ok((rs1, offset))
 }
 
@@ -486,9 +497,12 @@ impl I {
                 None,
                 None,
                 Some(|rd, rs1, imm| {
-                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
-                    let rs1 = Register::from_str(rs1).map_err(Error::InvalidRegisterArg)?;
-                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
+                    let rd = Register::from_str(rd)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let rs1 = Register::from_str(rs1)
+                        .map_err(|e| Error::InvalidArgument(1, InvalidArgument::Register(e)))?;
+                    let imm = Immediate::from_str(imm)
+                        .map_err(|e| Error::InvalidArgument(2, InvalidArgument::Immediate(e)))?;
 
                     Ok(I {
                         args: (rd, rs1, imm),
@@ -505,8 +519,10 @@ impl I {
                 None,
                 None,
                 Some(|rd, mem_arg| {
-                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
-                    let (rs1, offset) = get_memory_argument(mem_arg)?;
+                    let rd = Register::from_str(rd)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let (rs1, offset) =
+                        get_memory_argument(mem_arg).map_err(|e| Error::InvalidArgument(1, e))?;
 
                     Ok(I {
                         args: (rd, rs1, offset),
@@ -545,8 +561,10 @@ impl S {
                 None,
                 None,
                 Some(|rs2, mem_arg| {
-                    let rs2 = Register::from_str(rs2).map_err(Error::InvalidRegisterArg)?;
-                    let (rs1, offset) = get_memory_argument(mem_arg)?;
+                    let rs2 = Register::from_str(rs2)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let (rs1, offset) =
+                        get_memory_argument(mem_arg).map_err(|e| Error::InvalidArgument(1, e))?;
 
                     Ok(S {
                         args: (rs1, rs2, offset),
@@ -586,9 +604,12 @@ impl R {
                 None,
                 None,
                 Some(|rd, rs1, rs2| {
-                    let rd = Register::from_str(rd).map_err(Error::InvalidRegisterArg)?;
-                    let rs1 = Register::from_str(rs1).map_err(Error::InvalidRegisterArg)?;
-                    let rs2 = Register::from_str(rs2).map_err(Error::InvalidRegisterArg)?;
+                    let rd = Register::from_str(rd)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let rs1 = Register::from_str(rs1)
+                        .map_err(|e| Error::InvalidArgument(1, InvalidArgument::Register(e)))?;
+                    let rs2 = Register::from_str(rs2)
+                        .map_err(|e| Error::InvalidArgument(2, InvalidArgument::Register(e)))?;
 
                     Ok(R {
                         args: (rd, rs1, rs2),
@@ -627,9 +648,12 @@ impl B {
                 None,
                 None,
                 Some(|rs1, rs2, imm| {
-                    let rs1 = Register::from_str(rs1).map_err(Error::InvalidRegisterArg)?;
-                    let rs2 = Register::from_str(rs2).map_err(Error::InvalidRegisterArg)?;
-                    let imm = Immediate::from_str(imm).map_err(Error::InvalidImmediateArg)?;
+                    let rs1 = Register::from_str(rs1)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let rs2 = Register::from_str(rs2)
+                        .map_err(|e| Error::InvalidArgument(1, InvalidArgument::Register(e)))?;
+                    let imm = Immediate::from_str(imm)
+                        .map_err(|e| Error::InvalidArgument(2, InvalidArgument::Immediate(e)))?;
 
                     Ok(B {
                         args: (rs1, rs2, imm),
@@ -702,12 +726,12 @@ impl Fence {
                 }),
                 None,
                 Some(|arg0: &str, arg1: &str| {
-                    let pred: FenceArg<FencePredecessor> = arg0
-                        .parse()
-                        .or(Err(Error::InvalidFenceArgument(arg0.to_string())))?;
-                    let succ: FenceArg<FenceSuccessor> = arg1
-                        .parse()
-                        .or(Err(Error::InvalidFenceArgument(arg1.to_string())))?;
+                    let pred: FenceArg<FencePredecessor> = arg0.parse().or(Err(
+                        Error::InvalidArgument(0, InvalidArgument::Fence(arg0.to_string())),
+                    ))?;
+                    let succ: FenceArg<FenceSuccessor> = arg1.parse().or(Err(
+                        Error::InvalidArgument(1, InvalidArgument::Fence(arg1.to_string())),
+                    ))?;
 
                     Ok(Fence {
                         args: (
@@ -770,13 +794,13 @@ impl Shift {
                 Some(|rd: &str, rs1: &str, shamt: &str| {
                     let rd: Register<Rd> = rd
                         .parse()
-                        .or(Err(Error::InvalidFenceArgument(rd.to_string())))?;
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
                     let rs1: Register<Rs1> = rs1
                         .parse()
-                        .or(Err(Error::InvalidFenceArgument(rs1.to_string())))?;
+                        .map_err(|e| Error::InvalidArgument(1, InvalidArgument::Register(e)))?;
                     let shamt: Immediate<immediate::ShiftAmount> = shamt
                         .parse()
-                        .or(Err(Error::InvalidFenceArgument(shamt.to_string())))?;
+                        .map_err(|e| Error::InvalidArgument(2, InvalidArgument::Immediate(e)))?;
 
                     Ok(Self {
                         args: (rd, rs1, shamt),
@@ -893,9 +917,12 @@ fn parse_li(args: &[&str]) -> Result<I, Error> {
             Some(|rd, immediate| {
                 Ok(I {
                     args: (
-                        Register::from_str(rd).map_err(Error::InvalidRegisterArg)?,
+                        Register::from_str(rd)
+                            .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?,
                         Register::ZERO,
-                        Immediate::from_str(immediate).map_err(Error::InvalidImmediateArg)?,
+                        Immediate::from_str(immediate).map_err(|e| {
+                            Error::InvalidArgument(1, InvalidArgument::Immediate(e))
+                        })?,
                     ),
                 })
             }),

@@ -7,7 +7,6 @@ use std::string::String;
 
 #[derive(Debug)]
 pub enum GetMemoryLocationError {
-    MissingOpenParentheses,
     MissingCloseParentheses,
     TextAfterCloseParenthesis,
 }
@@ -155,6 +154,9 @@ pub struct B {
 }
 
 #[derive(Debug)]
+pub struct Load(I);
+
+#[derive(Debug)]
 pub struct Shift {
     args: (
         Register<Rd>,
@@ -175,11 +177,11 @@ pub enum Instruction {
     Bge(B),
     Bltu(B),
     Bgeu(B),
-    Lb(I),
-    Lh(I),
-    Lw(I),
-    Lbu(I),
-    Lhu(I),
+    Lb(Load),
+    Lh(Load),
+    Lw(Load),
+    Lbu(Load),
+    Lhu(Load),
     Sb(S),
     Sh(S),
     Sw(S),
@@ -461,31 +463,38 @@ fn get_memory_argument<Im>(
 where
     Im: immediate::Constraints,
 {
-    let open_bracket_index = memory_location
-        .find('(')
-        .ok_or(InvalidArgument::MemoryLocation(
-            GetMemoryLocationError::MissingOpenParentheses,
-        ))?;
+    if let Some(open_bracket_index) = memory_location.find('(') {
+        let close_bracket_index =
+            memory_location
+                .find(')')
+                .ok_or(InvalidArgument::MemoryLocation(
+                    GetMemoryLocationError::MissingCloseParentheses,
+                ))?;
 
-    let close_bracket_index = memory_location
-        .find(')')
-        .ok_or(InvalidArgument::MemoryLocation(
-            GetMemoryLocationError::MissingCloseParentheses,
-        ))?;
+        if close_bracket_index != memory_location.len() - 1 {
+            dbg!(memory_location);
+            return Err(InvalidArgument::MemoryLocation(
+                GetMemoryLocationError::TextAfterCloseParenthesis,
+            ));
+        }
 
-    if close_bracket_index != memory_location.len() - 1 {
-        dbg!(memory_location);
-        return Err(InvalidArgument::MemoryLocation(
-            GetMemoryLocationError::TextAfterCloseParenthesis,
-        ));
+        let rs1 = Register::from_str(&memory_location[open_bracket_index + 1..close_bracket_index])
+            .map_err(InvalidArgument::Register)?;
+
+        let offset = if open_bracket_index == 0 {
+            Immediate::from_i32(0).unwrap()
+        } else {
+            Immediate::from_str(&memory_location[0..open_bracket_index])
+                .map_err(InvalidArgument::Immediate)?
+        };
+        Ok((rs1, offset))
+    } else {
+        let rs1 = Register::from_str(&memory_location).map_err(InvalidArgument::Register)?;
+
+        let offset = Immediate::from_i32(0).unwrap();
+
+        Ok((rs1, offset))
     }
-
-    let rs1 = Register::from_str(&memory_location[open_bracket_index + 1..close_bracket_index])
-        .map_err(InvalidArgument::Register)?;
-
-    let offset = Immediate::from_str(&memory_location[0..open_bracket_index])
-        .map_err(InvalidArgument::Immediate)?;
-    Ok((rs1, offset))
 }
 
 impl I {
@@ -512,7 +521,14 @@ impl I {
         )
     }
 
-    fn load_from_args(args: &[&str]) -> Result<Self, Error> {
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
+        let (rd, rs1, imm) = &self.args;
+        opcode.place() | rd.place() | funct3.place() | rs1.place() | imm.place()
+    }
+}
+
+impl Load {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
         parse_help(
             args,
             (
@@ -524,9 +540,9 @@ impl I {
                     let (rs1, offset) =
                         get_memory_argument(mem_arg).map_err(|e| Error::InvalidArgument(1, e))?;
 
-                    Ok(I {
+                    Ok(Self(I {
                         args: (rd, rs1, offset),
-                    })
+                    }))
                 }),
                 None,
             ),
@@ -534,8 +550,7 @@ impl I {
     }
 
     fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
-        let (rd, rs1, imm) = &self.args;
-        opcode.place() | rd.place() | funct3.place() | rs1.place() | imm.place()
+        self.0.to_u32(opcode, funct3)
     }
 }
 
@@ -587,9 +602,23 @@ impl fmt::Display for S {
 
         write!(
             f,
-            "x{rs2},{imm}({rs1})", // TODO: limited to 12 bits?
+            "x{rs2},{imm}(x{rs1})", // TODO: limited to 12 bits?
             rs1 = rs1.to_u32(),
             rs2 = rs2.to_u32(),
+            imm = imm.to_i32(),
+        )
+    }
+}
+
+impl fmt::Display for Load {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (rd, rs1, imm) = &self.0.args;
+
+        write!(
+            f,
+            "x{rd},{imm}(x{rs1})", // TODO: limited to 12 bits?
+            rs1 = rs1.to_u32(),
+            rd = rd.to_u32(),
             imm = imm.to_i32(),
         )
     }
@@ -958,11 +987,11 @@ impl FromStr for Instruction {
             "bge" => B::from_args(&args).map(Instruction::Bge),
             "bltu" => B::from_args(&args).map(Instruction::Bltu),
             "bgeu" => B::from_args(&args).map(Instruction::Bgeu),
-            "lb" => I::load_from_args(&args).map(Instruction::Lb),
-            "lh" => I::load_from_args(&args).map(Instruction::Lh),
-            "lw" => I::load_from_args(&args).map(Instruction::Lw),
-            "lbu" => I::load_from_args(&args).map(Instruction::Lbu),
-            "lhu" => I::load_from_args(&args).map(Instruction::Lhu),
+            "lb" => Load::from_args(&args).map(Instruction::Lb),
+            "lh" => Load::from_args(&args).map(Instruction::Lh),
+            "lw" => Load::from_args(&args).map(Instruction::Lw),
+            "lbu" => Load::from_args(&args).map(Instruction::Lbu),
+            "lhu" => Load::from_args(&args).map(Instruction::Lhu),
             "sb" => S::from_args(&args).map(Instruction::Sb),
             "sh" => S::from_args(&args).map(Instruction::Sh),
             "sw" => S::from_args(&args).map(Instruction::Sw),

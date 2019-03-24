@@ -1,6 +1,6 @@
 [submodule "RV32I-common"]
-	path = RV32I_common
-	url = https://github.com/harrysarson/narvie
+	path = sail
+	url = https://github.com/physical-computation/Sail-RV32I-common
 [submodule "FPGA-peripherals"]
 	path = peripherals
 	url = https://github.com/FPGAwars/FPGA-peripherals

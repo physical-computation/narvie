@@ -2,7 +2,7 @@
 
 set -e
 
-cd RV32I_common
+cd sail
 source ../module-list.sh
 
 verilator \

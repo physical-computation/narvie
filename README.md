@@ -1,4 +1,4 @@
-# `narvie`
+# `> narvie`
 
 A Read Eval Print Loop (REPL) for RISC-V instructions.
 Only UNIX systems have been tested.

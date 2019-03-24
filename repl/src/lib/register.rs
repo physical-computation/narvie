@@ -72,7 +72,7 @@ impl<R> FromStr for Register<R> {
                             .and_then(|s| check_range(s, 12))
                             .map(|s| s + if s < 2 { 8 } else { 1 }),
                         "t" => rest_u32
-                            .and_then(|t| check_range(t, 8))
+                            .and_then(|t| check_range(t, 7))
                             .map(|t| t + if t < 3 { 5 } else { 25 }),
                         _ => err(),
                     }

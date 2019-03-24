@@ -166,6 +166,15 @@ pub struct Shift {
 }
 
 #[derive(Debug)]
+pub struct Csr {
+    args: (
+        Register<Rd>,
+        Register<Rs1>,
+        Immediate<immediate::CsrSpecifier>,
+    ),
+}
+
+#[derive(Debug)]
 pub enum Instruction {
     Lui(U),
     Auipc(U),
@@ -208,6 +217,9 @@ pub enum Instruction {
     FenceI(I),
     Ecall(I),
     Ebreak(I),
+    Csrrw(Csr),
+    Csrrs(Csr),
+    Csrrc(Csr),
 }
 
 #[derive(Debug)]
@@ -376,6 +388,14 @@ impl Placeable for FenceArg<FencePredecessor> {
 
     fn place_unchecked(&self) -> u32 {
         self.to_u32() << 24
+    }
+}
+
+impl Placeable for Immediate<immediate::CsrSpecifier> {
+    const MASK: u32 = Immediate::<immediate::I>::MASK;
+
+    fn place_unchecked(&self) -> u32 {
+        (self.to_i32() as u32) << 20
     }
 }
 
@@ -844,6 +864,7 @@ impl Shift {
         opcode.place() | rd.place() | funct3.place() | rs1.place() | shamt.place() | funct7.place()
     }
 }
+
 impl fmt::Display for Shift {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rd, rs1, shamt) = &self.args;
@@ -854,6 +875,54 @@ impl fmt::Display for Shift {
             rd = rd.to_u32(),
             rs1 = rs1.to_u32(),
             shamt = shamt.to_i32(),
+        )
+    }
+}
+
+impl Csr {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                None,
+                Some(|rd: &str, csr_specifier: &str, rs1: &str| {
+                    let rd: Register<Rd> = rd
+                        .parse()
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let csr_specifier: Immediate<immediate::CsrSpecifier> =
+                        csr_specifier.parse().map_err(|e| {
+                            Error::InvalidArgument(1, InvalidArgument::Immediate(e))
+                        })?;
+                    let rs1: Register<Rs1> = rs1
+                        .parse()
+                        .map_err(|e| Error::InvalidArgument(2, InvalidArgument::Register(e)))?;
+
+                    Ok(Self {
+                        args: (rd, rs1, csr_specifier),
+                    })
+                }),
+            ),
+        )
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
+        let (rd, rs1, csr_specifier) = &self.args;
+        opcode.place() | rd.place() | funct3.place() | rs1.place() | csr_specifier.place()
+    }
+}
+
+impl fmt::Display for Csr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (rd, rs1, csr) = &self.args;
+
+        write!(
+            f,
+            "{rd}, {csr}, {rs1}",
+            rd = rd.to_u32(),
+            rs1 = rs1.to_u32(),
+            csr = csr,
         )
     }
 }
@@ -1018,6 +1087,9 @@ impl FromStr for Instruction {
             "fence.i" => parse_no_args(&args).map(Instruction::FenceI),
             "ecall" => parse_no_args(&args).map(Instruction::Ecall),
             "ebreak" => parse_no_args(&args).map(Instruction::Ebreak),
+            "csrrw" => Csr::from_args(&args).map(Instruction::Csrrw),
+            "csrrs" => Csr::from_args(&args).map(Instruction::Csrrs),
+            "csrrc" => Csr::from_args(&args).map(Instruction::Csrrc),
             // Psudo instructions
             "nop" => parse_no_args(&args).map(Instruction::Addi),
             "li" => parse_li(&args).map(Instruction::Addi),
@@ -1070,6 +1142,9 @@ impl fmt::Display for Instruction {
             Instruction::FenceI(_) => write!(f, "fence.i"),
             Instruction::Ecall(_) => write!(f, "ecall"),
             Instruction::Ebreak(_) => write!(f, "ebreak"),
+            Instruction::Csrrw(csr) => write!(f, "csrrw {}", csr),
+            Instruction::Csrrs(csr) => write!(f, "csrrs {}", csr),
+            Instruction::Csrrc(csr) => write!(f, "csrrc {}", csr),
         }
     }
 }
@@ -1239,6 +1314,18 @@ impl Instruction {
             ),
             Instruction::Ecall(_) => 0b000000000000_00000_000_00000_1110011,
             Instruction::Ebreak(_) => 0b000000000001_00000_000_00000_1110011,
+            Instruction::Csrrw(csr) => csr.to_u32(
+                &Opcode::from_u32(0b1110011).unwrap(),
+                &Funct3::from_u32(0b001).unwrap(),
+            ),
+            Instruction::Csrrs(csr) => csr.to_u32(
+                &Opcode::from_u32(0b1110011).unwrap(),
+                &Funct3::from_u32(0b010).unwrap(),
+            ),
+            Instruction::Csrrc(csr) => csr.to_u32(
+                &Opcode::from_u32(0b1110011).unwrap(),
+                &Funct3::from_u32(0b011).unwrap(),
+            ),
         }
     }
 
@@ -1285,6 +1372,9 @@ impl Instruction {
             Instruction::FenceI(_) => Format::I,
             Instruction::Ecall(_) => Format::I,
             Instruction::Ebreak(_) => Format::I,
+            Instruction::Csrrw(_) => Format::I,
+            Instruction::Csrrs(_) => Format::I,
+            Instruction::Csrrc(_) => Format::I,
         }
     }
 }

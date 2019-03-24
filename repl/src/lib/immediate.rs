@@ -1,11 +1,18 @@
+use std::fmt;
 use std::marker::PhantomData;
+use std::marker::Sized;
 use std::str::FromStr;
 use std::string::String;
 
-pub trait Constraints {
+pub trait Constraints
+where
+    Self: Sized,
+{
     const MAX: i32;
     const MIN: i32;
     const EVEN: bool;
+
+    fn from_special_string(&str) -> Option<Immediate<Self>>;
 }
 
 #[derive(Debug)]
@@ -23,43 +30,82 @@ pub struct S;
 pub struct B;
 #[derive(Debug)]
 pub struct ShiftAmount;
+#[derive(Debug)]
+pub struct CsrSpecifier;
 
 impl Constraints for U {
     const MAX: i32 = (1 << 20) - 1;
     const MIN: i32 = 0;
     const EVEN: bool = false;
+    fn from_special_string(_: &str) -> Option<Immediate<Self>> {
+        None
+    }
 }
 
 impl Constraints for J {
     const MAX: i32 = (1 << 20) - 1;
     const MIN: i32 = -(1 << 20);
     const EVEN: bool = true;
+    fn from_special_string(_: &str) -> Option<Immediate<Self>> {
+        None
+    }
 }
 
 impl Constraints for I {
     const MAX: i32 = (1 << 11) - 1;
     const MIN: i32 = -(1 << 11);
     const EVEN: bool = false;
+    fn from_special_string(_: &str) -> Option<Immediate<Self>> {
+        None
+    }
 }
 
 impl Constraints for S {
     const MAX: i32 = (1 << 11) - 1;
     const MIN: i32 = -(1 << 11);
     const EVEN: bool = false;
+    fn from_special_string(_: &str) -> Option<Immediate<Self>> {
+        None
+    }
 }
 
 impl Constraints for B {
     const MAX: i32 = (1 << 12) - 1;
     const MIN: i32 = -(1 << 12);
     const EVEN: bool = true;
+    fn from_special_string(_: &str) -> Option<Immediate<Self>> {
+        None
+    }
 }
 
 impl Constraints for ShiftAmount {
     const MAX: i32 = 31;
     const MIN: i32 = 0;
     const EVEN: bool = false;
+    fn from_special_string(_: &str) -> Option<Immediate<Self>> {
+        None
+    }
 }
 
+impl Constraints for CsrSpecifier {
+    const MAX: i32 = (1 << 12) - 1;
+    const MIN: i32 = 0;
+    const EVEN: bool = false;
+    fn from_special_string(string: &str) -> Option<Immediate<Self>> {
+        Some(
+            Immediate::from_i32(match string {
+                "cycle" => 0xC00,
+                "time" => 0xC01,
+                "instret" => 0xC02,
+                "cycleh" => 0xC80,
+                "timeh" => 0xC81,
+                "instreth" => 0xC82,
+                _ => return None,
+            })
+            .unwrap(),
+        )
+    }
+}
 #[derive(Debug)]
 pub enum ConstraintViolation {
     LargerThan(i32),
@@ -133,8 +179,26 @@ impl<X: Constraints> FromStr for Immediate<X> {
     type Err = InvalidImmediate;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        get_immediate(string)
-            .ok_or(InvalidImmediate::Literal(string.to_string()))
-            .and_then(|imm| Self::from_i32(imm).map_err(InvalidImmediate::NumericValue))
+        X::from_special_string(string).ok_or(()).or_else(|_| {
+            get_immediate(string)
+                .ok_or(InvalidImmediate::Literal(string.to_string()))
+                .and_then(|imm| Self::from_i32(imm).map_err(InvalidImmediate::NumericValue))
+        })
+    }
+}
+
+impl fmt::Display for Immediate<CsrSpecifier> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let specifier = &self.0;
+
+        match specifier {
+            0xC00 => write!(f, "{}", "cycle"),
+            0xC01 => write!(f, "{}", "time"),
+            0xC02 => write!(f, "{}", "instret"),
+            0xC80 => write!(f, "{}", "cycleh"),
+            0xC81 => write!(f, "{}", "timeh"),
+            0xC82 => write!(f, "{}", "instreth"),
+            _ => write!(f, "{:X}", specifier),
+        }
     }
 }

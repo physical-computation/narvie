@@ -1,3 +1,4 @@
+use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
@@ -109,5 +110,11 @@ impl<R> Register<R> {
         } else {
             panic!("Register value outside bounds");
         }
+    }
+}
+
+impl<R> fmt::Display for Register<R> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "x{}", self.0)
     }
 }

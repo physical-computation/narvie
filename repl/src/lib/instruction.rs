@@ -458,8 +458,8 @@ impl fmt::Display for U {
 
         write!(
             f,
-            "x{rd},{imm}", // TODO: limited to 12 bits?
-            rd = rd.to_u32(),
+            "{rd},{imm}", // TODO: limited to 12 bits?
+            rd = rd,
             imm = imm,
         )
     }
@@ -497,8 +497,8 @@ impl fmt::Display for J {
 
         write!(
             f,
-            "x{rd},{imm}", // TODO: limited to 12 bits?
-            rd = rd.to_u32(),
+            "{rd},{imm}", // TODO: limited to 12 bits?
+            rd = rd,
             imm = imm
         )
     }
@@ -580,9 +580,9 @@ impl fmt::Display for I {
 
         write!(
             f,
-            "x{rd},x{rs1},{imm}", // TODO: limited to 12 bits?
-            rd = rd.to_u32(),
-            rs1 = rs1.to_u32(),
+            "{rd},{rs1},{imm}", // TODO: limited to 12 bits?
+            rd = rd,
+            rs1 = rs1,
             imm = imm
         )
     }
@@ -622,9 +622,9 @@ impl fmt::Display for S {
 
         write!(
             f,
-            "x{rs2},{imm}(x{rs1})", // TODO: limited to 12 bits?
-            rs1 = rs1.to_u32(),
-            rs2 = rs2.to_u32(),
+            "{rs2},{imm}({rs1})", // TODO: limited to 12 bits?
+            rs1 = rs1,
+            rs2 = rs2,
             imm = imm,
         )
     }
@@ -661,13 +661,7 @@ impl fmt::Display for Load {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rd, rs1, imm) = &self.0.args;
 
-        write!(
-            f,
-            "x{rd},{imm}(x{rs1})", // TODO: limited to 12 bits?
-            rs1 = rs1.to_u32(),
-            rd = rd.to_u32(),
-            imm = imm,
-        )
+        write!(f, "{rd},{imm}({rs1})", rs1 = rs1, rd = rd, imm = imm,)
     }
 }
 
@@ -705,13 +699,7 @@ impl fmt::Display for R {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rd, rs1, rs2) = &self.args;
 
-        write!(
-            f,
-            "x{rd},x{rs1},{rs2}",
-            rd = rd.to_u32(),
-            rs1 = rs1.to_u32(),
-            rs2 = rs2.to_u32()
-        )
+        write!(f, "{rd},{rs1},{rs2}", rd = rd, rs1 = rs1, rs2 = rs2,)
     }
 }
 
@@ -749,13 +737,7 @@ impl fmt::Display for B {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rs1, rs2, imm) = &self.args;
 
-        write!(
-            f,
-            "x{rs1},x{rs2},{imm}",
-            rs1 = rs1.to_u32(),
-            rs2 = rs2.to_u32(),
-            imm = imm
-        )
+        write!(f, "{rs1},{rs2},{imm}", rs1 = rs1, rs2 = rs2, imm = imm)
     }
 }
 
@@ -896,13 +878,7 @@ impl fmt::Display for Shift {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rd, rs1, shamt) = &self.args;
 
-        write!(
-            f,
-            "x{rd}, x{rs1}, {shamt}",
-            rd = rd.to_u32(),
-            rs1 = rs1.to_u32(),
-            shamt = shamt,
-        )
+        write!(f, "{rd},{rs1}, {shamt}", rd = rd, rs1 = rs1, shamt = shamt,)
     }
 }
 
@@ -944,13 +920,7 @@ impl fmt::Display for Csr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rd, rs1, csr) = &self.args;
 
-        write!(
-            f,
-            "x{rd}, {csr}, x{rs1}",
-            rd = rd.to_u32(),
-            rs1 = rs1.to_u32(),
-            csr = csr,
-        )
+        write!(f, "{rd}, {csr}, {rs1}", rd = rd, rs1 = rs1, csr = csr,)
     }
 }
 
@@ -992,13 +962,7 @@ impl fmt::Display for Csri {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rd, imm, csr) = &self.args;
 
-        write!(
-            f,
-            "x{rd}, {csr}, {imm}",
-            rd = rd.to_u32(),
-            csr = csr,
-            imm = imm,
-        )
+        write!(f, "{rd}, {csr}, {imm}", rd = rd, csr = csr, imm = imm,)
     }
 }
 

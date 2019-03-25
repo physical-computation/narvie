@@ -13,6 +13,7 @@ where
     const EVEN: bool;
 
     fn from_special_string(&str) -> Option<Immediate<Self>>;
+    fn write_help(&Immediate<Self>, &mut fmt::Formatter) -> fmt::Result;
 }
 
 #[derive(Debug)]
@@ -40,6 +41,9 @@ impl Constraints for U {
     fn from_special_string(_: &str) -> Option<Immediate<Self>> {
         None
     }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "0x{:X}", value.to_i32())
+    }
 }
 
 impl Constraints for J {
@@ -48,6 +52,9 @@ impl Constraints for J {
     const EVEN: bool = true;
     fn from_special_string(_: &str) -> Option<Immediate<Self>> {
         None
+    }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", value.to_i32())
     }
 }
 
@@ -58,6 +65,9 @@ impl Constraints for I {
     fn from_special_string(_: &str) -> Option<Immediate<Self>> {
         None
     }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", value.to_i32())
+    }
 }
 
 impl Constraints for S {
@@ -66,6 +76,9 @@ impl Constraints for S {
     const EVEN: bool = false;
     fn from_special_string(_: &str) -> Option<Immediate<Self>> {
         None
+    }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", value.to_i32())
     }
 }
 
@@ -76,6 +89,9 @@ impl Constraints for B {
     fn from_special_string(_: &str) -> Option<Immediate<Self>> {
         None
     }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", value.to_i32())
+    }
 }
 
 impl Constraints for ShiftAmount {
@@ -84,6 +100,9 @@ impl Constraints for ShiftAmount {
     const EVEN: bool = false;
     fn from_special_string(_: &str) -> Option<Immediate<Self>> {
         None
+    }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", value.to_i32())
     }
 }
 
@@ -104,6 +123,17 @@ impl Constraints for CsrSpecifier {
             })
             .unwrap(),
         )
+    }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        match value.to_i32() {
+            0xC00 => write!(f, "{}", "cycle"),
+            0xC01 => write!(f, "{}", "time"),
+            0xC02 => write!(f, "{}", "instret"),
+            0xC80 => write!(f, "{}", "cycleh"),
+            0xC81 => write!(f, "{}", "timeh"),
+            0xC82 => write!(f, "{}", "instreth"),
+            other => write!(f, "0x{:X}", other),
+        }
     }
 }
 #[derive(Debug)]
@@ -187,18 +217,8 @@ impl<X: Constraints> FromStr for Immediate<X> {
     }
 }
 
-impl fmt::Display for Immediate<CsrSpecifier> {
+impl<X: Constraints> fmt::Display for Immediate<X> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let specifier = &self.0;
-
-        match specifier {
-            0xC00 => write!(f, "{}", "cycle"),
-            0xC01 => write!(f, "{}", "time"),
-            0xC02 => write!(f, "{}", "instret"),
-            0xC80 => write!(f, "{}", "cycleh"),
-            0xC81 => write!(f, "{}", "timeh"),
-            0xC82 => write!(f, "{}", "instreth"),
-            _ => write!(f, "{:X}", specifier),
-        }
+        X::write_help(self, f)
     }
 }

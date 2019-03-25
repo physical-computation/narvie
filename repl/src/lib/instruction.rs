@@ -431,9 +431,9 @@ impl fmt::Display for U {
 
         write!(
             f,
-            "x{rd},0x{imm:x}", // TODO: limited to 12 bits?
+            "x{rd},{imm}", // TODO: limited to 12 bits?
             rd = rd.to_u32(),
-            imm = imm.to_i32()
+            imm = imm,
         )
     }
 }
@@ -472,7 +472,7 @@ impl fmt::Display for J {
             f,
             "x{rd},{imm}", // TODO: limited to 12 bits?
             rd = rd.to_u32(),
-            imm = imm.to_i32()
+            imm = imm
         )
     }
 }
@@ -547,33 +547,6 @@ impl I {
     }
 }
 
-impl Load {
-    fn from_args(args: &[&str]) -> Result<Self, Error> {
-        parse_help(
-            args,
-            (
-                None,
-                None,
-                Some(|rd, mem_arg| {
-                    let rd = Register::from_str(rd)
-                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
-                    let (rs1, offset) =
-                        get_memory_argument(mem_arg).map_err(|e| Error::InvalidArgument(1, e))?;
-
-                    Ok(Self(I {
-                        args: (rd, rs1, offset),
-                    }))
-                }),
-                None,
-            ),
-        )
-    }
-
-    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
-        self.0.to_u32(opcode, funct3)
-    }
-}
-
 impl fmt::Display for I {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (rd, rs1, imm) = &self.args;
@@ -583,7 +556,7 @@ impl fmt::Display for I {
             "x{rd},x{rs1},{imm}", // TODO: limited to 12 bits?
             rd = rd.to_u32(),
             rs1 = rs1.to_u32(),
-            imm = imm.to_i32()
+            imm = imm
         )
     }
 }
@@ -625,8 +598,35 @@ impl fmt::Display for S {
             "x{rs2},{imm}(x{rs1})", // TODO: limited to 12 bits?
             rs1 = rs1.to_u32(),
             rs2 = rs2.to_u32(),
-            imm = imm.to_i32(),
+            imm = imm,
         )
+    }
+}
+
+impl Load {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                Some(|rd, mem_arg| {
+                    let rd = Register::from_str(rd)
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let (rs1, offset) =
+                        get_memory_argument(mem_arg).map_err(|e| Error::InvalidArgument(1, e))?;
+
+                    Ok(Self(I {
+                        args: (rd, rs1, offset),
+                    }))
+                }),
+                None,
+            ),
+        )
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
+        self.0.to_u32(opcode, funct3)
     }
 }
 
@@ -639,7 +639,7 @@ impl fmt::Display for Load {
             "x{rd},{imm}(x{rs1})", // TODO: limited to 12 bits?
             rs1 = rs1.to_u32(),
             rd = rd.to_u32(),
-            imm = imm.to_i32(),
+            imm = imm,
         )
     }
 }
@@ -727,7 +727,7 @@ impl fmt::Display for B {
             "x{rs1},x{rs2},{imm}",
             rs1 = rs1.to_u32(),
             rs2 = rs2.to_u32(),
-            imm = imm.to_i32()
+            imm = imm
         )
     }
 }
@@ -874,7 +874,7 @@ impl fmt::Display for Shift {
             "{rd}, {rs1}, {shamt}",
             rd = rd.to_u32(),
             rs1 = rs1.to_u32(),
-            shamt = shamt.to_i32(),
+            shamt = shamt,
         )
     }
 }

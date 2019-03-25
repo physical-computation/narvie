@@ -239,6 +239,7 @@ pub enum ISpecialization {
     None,
     Csr,
     Csri,
+    Fence,
 }
 
 #[derive(Debug)]
@@ -249,7 +250,6 @@ pub enum Format {
     B,
     R,
     S,
-    Fence,
     Shift,
 }
 
@@ -1461,7 +1461,7 @@ impl Instruction {
             Instruction::Sra(_) => Format::R,
             Instruction::Or(_) => Format::R,
             Instruction::And(_) => Format::R,
-            Instruction::Fence(_) => Format::Fence,
+            Instruction::Fence(_) => Format::I(ISpecialization::Fence),
             Instruction::FenceI(_) => Format::I(ISpecialization::None),
             Instruction::Ecall(_) => Format::I(ISpecialization::None),
             Instruction::Ebreak(_) => Format::I(ISpecialization::None),

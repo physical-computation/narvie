@@ -6,8 +6,8 @@ Only UNIX systems have been tested.
 
 ## Installation
 
-* Install node version 10 or greater (<https://nodejs.org/en/>)
-* `cd` into the `repl` subdirectory and run `npm install`.
+* Download Rustup and install Rust. (<https://www.rust-lang.org/tools/install>)
+* `cd` into the `repl` subdirectory and run `cargo build`.
 
 To run the RISC-V REPL in simulation, `verilator` is needed.
 To synthesise the verilog and flash to an FPGA `./progMDP` uses `yosys`, `arachne-pnr` and `icestorm`.
@@ -26,14 +26,13 @@ You will need two terminals to run the RISC-V REPL.
 
 #### Running on an FPGA
 
-* `$ ./progMDP` to synthesise the verilog and to flash to the FPGA.
-* `$ nc -l 8001 > /dev/ttyS10 < /dev/ttyS10` forwards the serial port data to a TCP port.
-    You should replace `/dev/ttyS10` with the particular port the FPGA is connected to.
-    You may need to use `stty` to set the serial port baud rate to `112500`.
+* `$ ./progMDP` to synthesise the verilog and to flash the `narvie` processsor to a connected FPGA.
 
 ### Second Terminal
 
-* `$ node repl` starts the interactive repl.
+* Run `$ ./repl/target/debug/narvie --help`, `narvie` should display helpful output to the terminal.
+* To connect the `narvie` cli to a simulation run `$ ./repl/target/debug/narvie --tcp 8001`.
+* To connect the `narvie` cli to an FGPA run `$ ./repl/target/debug/narvie --baud 115200 ADDRESS` where `ADDRESS` is the serial port that the `narvie` processor is connected to. To list avialible serial ports, run `$ ./repl/target/debug/narvie` with no arguments.
 * Type instructions into the prompt. Examples are `nop`, `li t0, 1678`, or `addi t0, t0, 1`.
 * When done, use `ctrl-c` to quit the repl.
 
@@ -54,9 +53,17 @@ As this project borrows GPL licensed code from other sources it too is licensed 
 
 ## Acknowledgements
 
-The risc-v processor was implemented by Ryan Voo @rjlv2.
+The risc-v processor was implemented based on verilog modules developed by Ryan Voo @rjlv2.
 The only modifications made to the processor were related to breaking the pipeline and instruction fetch mechinisms to allow instructions to be executed individually.
 
-The verilog UART modules (`uart/baudgen_rx.v`, `uart/baudgen_tx.v`, `uart/baudgen.vh`, `uart/uart_rx.v` and `uart/uart_tx.v`) are copied unmodified from <https://github.com/FPGAwars/FPGA-peripherals>.
+The verilog UART modules can be found at <https://github.com/FPGAwars/FPGA-peripherals>.
 
-The verilator uart simulator code (`testbench/uartsim.h` and `testbench/uartsim.h`) are copied unmodified from <https://github.com/ZipCPU/wbuart32>.
+The verilator UART simulator testbench code (`testbench/uartsim.h` and `testbench/uartsim.h`) are copied unmodified from <https://github.com/ZipCPU/wbuart32>.
+
+---
+
+If you use Warp in your research, please cite it as:
+
+> Harry Sarson, Ryan Voo, and Phillip Stanley-Marbell.
+"Evaluating RISC-V Instructions Natively with Narvie."
+2019

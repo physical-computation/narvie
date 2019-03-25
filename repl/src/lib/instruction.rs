@@ -775,6 +775,12 @@ impl<T> FromStr for FenceArg<T> {
                 }
             }
         }
+        if fence_arg == 0 {
+            return Err(());
+        }
+        if arg != "" {
+            return Err(());
+        }
         Ok(FenceArg::from_u32(fence_arg).unwrap())
     }
 }

@@ -410,6 +410,19 @@ impl Placeable for FenceArg<FencePredecessor> {
     }
 }
 
+impl<FT> fmt::Display for FenceArg<FT> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let fence_arg = [
+            if (self.0 & 0b1000) == 0 { "" } else { "i" },
+            if (self.0 & 0b0100) == 0 { "" } else { "o" },
+            if (self.0 & 0b0010) == 0 { "" } else { "r" },
+            if (self.0 & 0b0001) == 0 { "" } else { "w" },
+        ]
+        .concat();
+        write!(f, "{}", fence_arg)
+    }
+}
+
 impl Placeable for Immediate<immediate::CsrSpecifier> {
     const MASK: u32 = Immediate::<immediate::I>::MASK;
 
@@ -822,22 +835,7 @@ impl fmt::Display for Fence {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (_, _, succ, pred, _) = &self.args;
 
-        let to_fence_arg = |bits| {
-            [
-                if (bits & 0b1000) == 0 { "" } else { "i" },
-                if (bits & 0b0100) == 0 { "" } else { "o" },
-                if (bits & 0b0010) == 0 { "" } else { "r" },
-                if (bits & 0b0001) == 0 { "" } else { "w" },
-            ]
-            .concat()
-        };
-
-        write!(
-            f,
-            "{pred}, {succ}",
-            pred = to_fence_arg(pred.to_u32()),
-            succ = to_fence_arg(succ.to_u32())
-        )
+        write!(f, "{pred}, {succ}", pred = pred, succ = succ)
     }
 }
 

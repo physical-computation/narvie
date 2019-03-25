@@ -83,7 +83,15 @@ fn format_headers(f: &instruction::Format) -> &'static [&'static str] {
     match f {
         instruction::Format::U => &["imm[31:12]", "rd", "opcode"],
         instruction::Format::J => &["imm[20|10:1|11|19:12]", "rd", "opcode"],
-        instruction::Format::I(_) => &["imm[11:0]", "rs1", "funct3", "rd", "opcode"],
+        instruction::Format::I(instruction::ISpecialization::None) => {
+            &["imm[11:0]", "rs1", "funct3", "rd", "opcode"]
+        }
+        instruction::Format::I(instruction::ISpecialization::Csr) => {
+            &["csr", "rs1", "funct3", "rd", "opcode"]
+        }
+        instruction::Format::I(instruction::ISpecialization::Csri) => {
+            &["csr", "imm[4:0]", "funct3", "rd", "opcode"]
+        }
         instruction::Format::B => &[
             "imm[12|10:5]",
             "rs2",

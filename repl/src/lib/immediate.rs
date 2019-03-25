@@ -33,6 +33,8 @@ pub struct B;
 pub struct ShiftAmount;
 #[derive(Debug)]
 pub struct CsrSpecifier;
+#[derive(Debug)]
+pub struct CsrImmediate;
 
 impl Constraints for U {
     const MAX: i32 = (1 << 20) - 1;
@@ -136,6 +138,19 @@ impl Constraints for CsrSpecifier {
         }
     }
 }
+
+impl Constraints for CsrImmediate {
+    const MAX: i32 = 31;
+    const MIN: i32 = 0;
+    const EVEN: bool = false;
+    fn from_special_string(_: &str) -> Option<Immediate<Self>> {
+        None
+    }
+    fn write_help(value: &Immediate<Self>, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", value.to_i32())
+    }
+}
+
 #[derive(Debug)]
 pub enum ConstraintViolation {
     LargerThan(i32),

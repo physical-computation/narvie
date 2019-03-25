@@ -175,6 +175,15 @@ pub struct Csr {
 }
 
 #[derive(Debug)]
+pub struct Csri {
+    args: (
+        Register<Rd>,
+        Immediate<immediate::CsrImmediate>,
+        Immediate<immediate::CsrSpecifier>,
+    ),
+}
+
+#[derive(Debug)]
 pub enum Instruction {
     Lui(U),
     Auipc(U),
@@ -220,13 +229,23 @@ pub enum Instruction {
     Csrrw(Csr),
     Csrrs(Csr),
     Csrrc(Csr),
+    Csrrwi(Csri),
+    Csrrsi(Csri),
+    Csrrci(Csri),
+}
+
+#[derive(Debug)]
+pub enum ISpecialization {
+    None,
+    Csr,
+    Csri,
 }
 
 #[derive(Debug)]
 pub enum Format {
     U,
     J,
-    I,
+    I(ISpecialization),
     B,
     R,
     S,
@@ -396,6 +415,14 @@ impl Placeable for Immediate<immediate::CsrSpecifier> {
 
     fn place_unchecked(&self) -> u32 {
         (self.to_i32() as u32) << 20
+    }
+}
+
+impl Placeable for Immediate<immediate::CsrImmediate> {
+    const MASK: u32 = Register::<Rs1>::MASK;
+
+    fn place_unchecked(&self) -> u32 {
+        (self.to_i32() as u32) << 15
     }
 }
 
@@ -927,6 +954,54 @@ impl fmt::Display for Csr {
     }
 }
 
+impl Csri {
+    fn from_args(args: &[&str]) -> Result<Self, Error> {
+        parse_help(
+            args,
+            (
+                None,
+                None,
+                None,
+                Some(|rd: &str, csr_specifier: &str, imm: &str| {
+                    let rd: Register<Rd> = rd
+                        .parse()
+                        .map_err(|e| Error::InvalidArgument(0, InvalidArgument::Register(e)))?;
+                    let csr_specifier: Immediate<immediate::CsrSpecifier> =
+                        csr_specifier.parse().map_err(|e| {
+                            Error::InvalidArgument(1, InvalidArgument::Immediate(e))
+                        })?;
+                    let imm: Immediate<immediate::CsrImmediate> = imm
+                        .parse()
+                        .map_err(|e| Error::InvalidArgument(2, InvalidArgument::Immediate(e)))?;
+
+                    Ok(Self {
+                        args: (rd, imm, csr_specifier),
+                    })
+                }),
+            ),
+        )
+    }
+
+    fn to_u32(&self, opcode: &Opcode, funct3: &Funct3) -> u32 {
+        let (rd, imm, csr_specifier) = &self.args;
+        opcode.place() | rd.place() | funct3.place() | imm.place() | csr_specifier.place()
+    }
+}
+
+impl fmt::Display for Csri {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (rd, imm, csr) = &self.args;
+
+        write!(
+            f,
+            "x{rd}, {csr}, {imm}",
+            rd = rd.to_u32(),
+            csr = csr,
+            imm = imm,
+        )
+    }
+}
+
 fn parse_help<In>(
     args: &[&str],
     (f0, f1, f2, f3): (
@@ -1090,6 +1165,9 @@ impl FromStr for Instruction {
             "csrrw" => Csr::from_args(&args).map(Instruction::Csrrw),
             "csrrs" => Csr::from_args(&args).map(Instruction::Csrrs),
             "csrrc" => Csr::from_args(&args).map(Instruction::Csrrc),
+            "csrrwi" => Csri::from_args(&args).map(Instruction::Csrrwi),
+            "csrrsi" => Csri::from_args(&args).map(Instruction::Csrrsi),
+            "csrrci" => Csri::from_args(&args).map(Instruction::Csrrci),
             // Psudo instructions
             "nop" => parse_no_args(&args).map(Instruction::Addi),
             "li" => parse_li(&args).map(Instruction::Addi),
@@ -1145,6 +1223,9 @@ impl fmt::Display for Instruction {
             Instruction::Csrrw(csr) => write!(f, "csrrw {}", csr),
             Instruction::Csrrs(csr) => write!(f, "csrrs {}", csr),
             Instruction::Csrrc(csr) => write!(f, "csrrc {}", csr),
+            Instruction::Csrrwi(csri) => write!(f, "csrrwi {}", csri),
+            Instruction::Csrrsi(csri) => write!(f, "csrrsi {}", csri),
+            Instruction::Csrrci(csri) => write!(f, "csrrci {}", csri),
         }
     }
 }
@@ -1326,6 +1407,18 @@ impl Instruction {
                 &Opcode::from_u32(0b1110011).unwrap(),
                 &Funct3::from_u32(0b011).unwrap(),
             ),
+            Instruction::Csrrwi(csri) => csri.to_u32(
+                &Opcode::from_u32(0b1110011).unwrap(),
+                &Funct3::from_u32(0b101).unwrap(),
+            ),
+            Instruction::Csrrsi(csri) => csri.to_u32(
+                &Opcode::from_u32(0b1110011).unwrap(),
+                &Funct3::from_u32(0b110).unwrap(),
+            ),
+            Instruction::Csrrci(csri) => csri.to_u32(
+                &Opcode::from_u32(0b1110011).unwrap(),
+                &Funct3::from_u32(0b111).unwrap(),
+            ),
         }
     }
 
@@ -1334,27 +1427,27 @@ impl Instruction {
             Instruction::Lui(_) => Format::U,
             Instruction::Auipc(_) => Format::U,
             Instruction::Jal(_) => Format::J,
-            Instruction::Jalr(_) => Format::I,
+            Instruction::Jalr(_) => Format::I(ISpecialization::None),
             Instruction::Beq(_) => Format::B,
             Instruction::Bne(_) => Format::B,
             Instruction::Blt(_) => Format::B,
             Instruction::Bge(_) => Format::B,
             Instruction::Bltu(_) => Format::B,
             Instruction::Bgeu(_) => Format::B,
-            Instruction::Lb(_) => Format::I,
-            Instruction::Lh(_) => Format::I,
-            Instruction::Lw(_) => Format::I,
-            Instruction::Lbu(_) => Format::I,
-            Instruction::Lhu(_) => Format::I,
+            Instruction::Lb(_) => Format::I(ISpecialization::None),
+            Instruction::Lh(_) => Format::I(ISpecialization::None),
+            Instruction::Lw(_) => Format::I(ISpecialization::None),
+            Instruction::Lbu(_) => Format::I(ISpecialization::None),
+            Instruction::Lhu(_) => Format::I(ISpecialization::None),
             Instruction::Sb(_) => Format::S,
             Instruction::Sh(_) => Format::S,
             Instruction::Sw(_) => Format::S,
-            Instruction::Addi(_) => Format::I,
-            Instruction::Slti(_) => Format::I,
-            Instruction::Sltiu(_) => Format::I,
-            Instruction::Xori(_) => Format::I,
-            Instruction::Ori(_) => Format::I,
-            Instruction::Andi(_) => Format::I,
+            Instruction::Addi(_) => Format::I(ISpecialization::None),
+            Instruction::Slti(_) => Format::I(ISpecialization::None),
+            Instruction::Sltiu(_) => Format::I(ISpecialization::None),
+            Instruction::Xori(_) => Format::I(ISpecialization::None),
+            Instruction::Ori(_) => Format::I(ISpecialization::None),
+            Instruction::Andi(_) => Format::I(ISpecialization::None),
             Instruction::Slli(_) => Format::Shift,
             Instruction::Srli(_) => Format::Shift,
             Instruction::Srai(_) => Format::Shift,
@@ -1369,12 +1462,15 @@ impl Instruction {
             Instruction::Or(_) => Format::R,
             Instruction::And(_) => Format::R,
             Instruction::Fence(_) => Format::Fence,
-            Instruction::FenceI(_) => Format::I,
-            Instruction::Ecall(_) => Format::I,
-            Instruction::Ebreak(_) => Format::I,
-            Instruction::Csrrw(_) => Format::I,
-            Instruction::Csrrs(_) => Format::I,
-            Instruction::Csrrc(_) => Format::I,
+            Instruction::FenceI(_) => Format::I(ISpecialization::None),
+            Instruction::Ecall(_) => Format::I(ISpecialization::None),
+            Instruction::Ebreak(_) => Format::I(ISpecialization::None),
+            Instruction::Csrrw(_) => Format::I(ISpecialization::Csr),
+            Instruction::Csrrs(_) => Format::I(ISpecialization::Csr),
+            Instruction::Csrrc(_) => Format::I(ISpecialization::Csr),
+            Instruction::Csrrwi(_) => Format::I(ISpecialization::Csri),
+            Instruction::Csrrsi(_) => Format::I(ISpecialization::Csri),
+            Instruction::Csrrci(_) => Format::I(ISpecialization::Csri),
         }
     }
 }

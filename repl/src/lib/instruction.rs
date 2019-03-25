@@ -871,7 +871,7 @@ impl fmt::Display for Shift {
 
         write!(
             f,
-            "{rd}, {rs1}, {shamt}",
+            "x{rd}, x{rs1}, {shamt}",
             rd = rd.to_u32(),
             rs1 = rs1.to_u32(),
             shamt = shamt,
@@ -919,7 +919,7 @@ impl fmt::Display for Csr {
 
         write!(
             f,
-            "{rd}, {csr}, {rs1}",
+            "x{rd}, {csr}, x{rs1}",
             rd = rd.to_u32(),
             rs1 = rs1.to_u32(),
             csr = csr,

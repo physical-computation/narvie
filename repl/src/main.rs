@@ -5,7 +5,7 @@ extern crate log;
 extern crate prettytable;
 extern crate rustyline;
 extern crate serialport;
-extern crate stderrlog;
+extern crate env_logger;
 extern crate time;
 
 mod lib;
@@ -392,11 +392,7 @@ Maybe try one of these:"
 }
 
 fn main() {
-    stderrlog::new()
-        .module(module_path!())
-        .verbosity(3)
-        .init()
-        .unwrap();
+    env_logger::init();
 
     let (history_file, log_file) = ProjectDirs::from("", "physical-computation", "narvie")
         .map(|p| p.data_dir().to_owned())

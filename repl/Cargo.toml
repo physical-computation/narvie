@@ -1,7 +1,10 @@
 [package]
-name = "narvie"
+name = "narvie-cli"
 version = "0.1.0"
 authors = ["Harry Sarson <harry.sarson@hotmail.co.uk>"]
+description = "A CLI for the narvie REPL"
+licence = "GPL-3.0"
+
 
 [dependencies]
 clap = "2.32.0"

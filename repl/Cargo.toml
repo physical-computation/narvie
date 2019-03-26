@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Harry Sarson <harry.sarson@hotmail.co.uk>"]
 description = "A CLI for the narvie REPL"
 license = "GPL-3.0"
+readme = "../README.md"
+homepage = "https://github.com/physical-computation/narvie"
+repository = "https://github.com/physical-computation/narvie"
+keywords = ["cli", "RISC-V", "narvie", "repl", "physical-computation"]
+categories = ["command-line-utilities", "hardware-support", "science"]
 
 
 [dependencies]

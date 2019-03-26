@@ -62,7 +62,7 @@ The verilator UART simulator testbench code (`testbench/uartsim.h` and `testbenc
 
 ---
 
-If you use Warp in your research, please cite it as:
+If you use `narvie` in your research, please cite it as:
 
 > Harry Sarson, Ryan Voo, and Phillip Stanley-Marbell.
 "Evaluating RISC-V Instructions Natively with Narvie."

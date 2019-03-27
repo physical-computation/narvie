@@ -1,5 +1,5 @@
 #include "testbench.h"
-#include "../verilator_sim/Vtop_sim.h"
+#include "../verilator_built/Vtop_sim.h"
 #include "Vtop_sim.h"
 #include "verilated.h"
 #include <cstdio>

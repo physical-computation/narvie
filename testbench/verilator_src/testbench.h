@@ -1,4 +1,4 @@
-#include "../verilator_sim/Vtop_sim.h"
+#include "../verilator_built/Vtop_sim.h"
 #include "uartsim.h"
 #include "verilated.h"
 #include <cstdlib>

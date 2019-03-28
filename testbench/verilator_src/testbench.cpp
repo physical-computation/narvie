@@ -1,10 +1,23 @@
 #include "testbench.h"
-#include "../verilator_built/Vtop_sim.h"
-#include "Vtop_sim.h"
+#include "Vnarvie.h"
 #include "verilated.h"
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+
+extern "C" {
+	void main_loop(int argc, char **argv) {
+		Verilated::commandArgs(argc, argv);
+		TESTBENCH *tb = new TESTBENCH();
+
+		while (!tb->done())
+		{
+			tb->tick();
+		}
+		exit(EXIT_SUCCESS);
+	}
+}
+
 
 TESTBENCH::TESTBENCH()
 	: m_uart(8001), m_core(), m_tickcount(0),

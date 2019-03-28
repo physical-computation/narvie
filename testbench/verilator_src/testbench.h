@@ -1,13 +1,20 @@
-#include "../verilator_built/Vtop_sim.h"
+#ifndef TESTBENCH_H
+#define TESTBENCH_H
+
+#include "Vnarvie.h"
 #include "uartsim.h"
 #include "verilated.h"
 #include <cstdlib>
 #include <memory>
 
+extern "C" {
+	void main_loop(int argc, char **argv);
+}
+
 class TESTBENCH
 {
 	unsigned long m_tickcount;
-	Vtop_sim m_core;
+	Vnarvie m_core;
 	UARTSIM m_uart;
 
 	bool m_is_evaluating;
@@ -25,3 +32,5 @@ class TESTBENCH
 	virtual void tick();
 	virtual bool done();
 };
+
+#endif

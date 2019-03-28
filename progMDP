@@ -2,8 +2,10 @@
 
 set -e
 
+export NARVIE_ROOT=$(pwd)
+source ./module-list.sh
+
 cd sail
-source ../module-list.sh
 
 PROJECT=rv32i_ice40MDP
 

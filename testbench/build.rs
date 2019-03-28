@@ -1,9 +1,11 @@
 
 use std::process::{Command, Stdio};
 use std::io::Write;
+use std::env;
 
 fn main() {
-
+  let current_dir = env::current_dir().unwrap();
+  let out_dir = env::var("OUT_DIR").unwrap();
   let mut build = Command::new("bash").stdin(Stdio::piped()).spawn().unwrap();
 
   {
@@ -14,34 +16,33 @@ fn main() {
 set -e
 set -v
 
-cd ../sail
-source ../module-list.sh
-
-TESTBENCH_DIR=../testbench
+OUT_DIR={}
+NARVIE_ROOT={}
+TESTBENCH_DIR=$NARVIE_ROOT/testbench
 VERILATOR_SRC=$TESTBENCH_DIR/verilator_src
-BUILD_DIR=$TESTBENCH_DIR/verilator_built
+
+cd $OUT_DIR
+
+source $NARVIE_ROOT/module-list.sh
 
 verilator \
 -Wall \
---cc $VERILATOR_SRC/top_sim.v $MODULES config.vlt \
+--cc $VERILATOR_SRC/top_sim.v $MODULES $SAIL/config.vlt \
 -I$UART_RX \
 --prefix Vnarvie \
 --cc $VERILATOR_SRC/main.cpp $VERILATOR_SRC/testbench.cpp $VERILATOR_SRC/uartsim.cpp \
 --exe \
--Mdir $BUILD_DIR \
+-Mdir $OUT_DIR \
 -CFLAGS "-std=c++14 -g -O3"
 
-cd -
-cd verilator_built
 make -j -f Vnarvie.mk
 cp Vnarvie__ALL.a libvnarvie.a
 ar -q libvnarvie.a testbench.o uartsim.o verilated.o
 
-
-    "#).unwrap();
+    "#, out_dir, current_dir.parent().unwrap().to_str().unwrap()).unwrap();
   }
 
   assert!(build.wait().unwrap().success());
 
-  println!(r"cargo:rustc-link-search=verilator_built");
+  println!(r"cargo:rustc-link-search={}", out_dir);
 }

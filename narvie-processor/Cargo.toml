@@ -1,7 +1,11 @@
 [package]
-name = "testbench"
+name = "narvie-processor"
 version = "0.1.0"
 authors = ["Harry Sarson <harry.sarson@hotmail.co.uk>"]
 edition = "2018"
 
 [dependencies]
+
+[[bin]]
+name = "narvie-processor"
+path = "simulator-src/main.rs"

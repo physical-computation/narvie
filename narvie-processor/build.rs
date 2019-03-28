@@ -18,8 +18,7 @@ set -v
 
 OUT_DIR={}
 NARVIE_ROOT={}
-TESTBENCH_DIR=$NARVIE_ROOT/testbench
-VERILATOR_SRC=$TESTBENCH_DIR/verilator_src
+VERILATOR_SRC=$NARVIE_ROOT/simulator-src
 
 cd $OUT_DIR
 
@@ -39,7 +38,7 @@ make -j -f Vnarvie.mk
 cp Vnarvie__ALL.a libvnarvie.a
 ar -q libvnarvie.a testbench.o uartsim.o verilated.o
 
-    "#, out_dir, current_dir.parent().unwrap().to_str().unwrap()).unwrap();
+    "#, out_dir, current_dir.to_str().unwrap()).unwrap();
   }
 
   assert!(build.wait().unwrap().success());

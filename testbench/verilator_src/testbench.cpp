@@ -6,8 +6,7 @@
 #include <memory>
 
 extern "C" {
-	void main_loop(int argc, char **argv) {
-		Verilated::commandArgs(argc, argv);
+	void main_loop() {
 		TESTBENCH *tb = new TESTBENCH();
 
 		while (!tb->done())

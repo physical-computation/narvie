@@ -8,7 +8,7 @@
 #include <memory>
 
 extern "C" {
-	void main_loop(int argc, char **argv);
+	void main_loop();
 }
 
 class TESTBENCH

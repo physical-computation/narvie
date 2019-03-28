@@ -3,9 +3,22 @@ name = "narvie-processor"
 version = "0.1.0"
 authors = ["Harry Sarson <harry.sarson@hotmail.co.uk>"]
 edition = "2018"
+description = "Run a simulation of the narvie processor"
+license = "GPL-3.0"
+readme = "../README.md"
+homepage = "https://github.com/physical-computation/narvie"
+repository = "https://github.com/physical-computation/narvie"
+keywords = ["processor", "RISC-V", "narvie", "repl", "physical-computation"]
+categories = ["hardware-support", "science"]
+
 
 [dependencies]
 
 [[bin]]
 name = "narvie-processor"
 path = "simulator-src/main.rs"
+
+
+[lib]
+name = "narvie_processor"
+path = "simulator-src/lib.rs"

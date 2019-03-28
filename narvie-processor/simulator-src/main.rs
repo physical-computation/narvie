@@ -1,12 +1,6 @@
 
-#[link(name = "vnarvie")]
-#[link(name = "stdc++")]
-extern {
-    fn main_loop() -> ();
-}
+mod lib;
 
 fn main() {
-    unsafe {
-        main_loop();
-    };
+    lib::run_narvie();
 }

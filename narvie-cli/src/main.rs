@@ -7,6 +7,7 @@ extern crate rustyline;
 extern crate serialport;
 extern crate env_logger;
 extern crate time;
+extern crate narvie_processor;
 
 mod lib;
 
@@ -28,6 +29,7 @@ use std::path::Path;
 use std::process;
 use std::str::FromStr;
 use std::time::Duration;
+use std::thread;
 
 #[derive(Debug)]
 enum EvalInstructionError {
@@ -298,7 +300,31 @@ where
 }
 
 fn narvie_port(matches: &clap::ArgMatches) -> Result<Box<dyn ReadWrite>, Box<Error>> {
-    if let Some(tcp_port) = matches.value_of("tcp-port") {
+    if matches.is_present("simulate") {
+        let tcp_port = 8001;
+
+        thread::spawn(|| {
+			narvie_processor::run_narvie();
+		});
+
+        thread::sleep(Duration::from_millis(500));
+
+        TcpStream::connect(("localhost", tcp_port))
+            .map_err(|e| {
+                error!(
+                    "
+narvie cannot connect to tcp port {}!
+
+Check that a simulation of the narvie processor is running and the that you
+are using the correct port address. Then run the narvie CLI again.",
+                    tcp_port
+                );
+                debug!("Error details: {:?}", e);
+                Box::new(e).into()
+            })
+            .map(Box::new)
+            .map(|b| Box::<dyn ReadWrite>::from(b))
+    } else if let Some(tcp_port) = matches.value_of("tcp-port") {
         let tcp_port = tcp_port.parse::<u16>().map_err(|e| {
             error!("Port for tcp must be a positive integer");
             Box::new(e)
@@ -429,6 +455,11 @@ fn main() {
                 .takes_value(true)
                 .long("tcp")
                 .help("Listen over tcp at port PORT instead of a serialport."),
+        )
+        .arg(
+            Arg::with_name("simulate")
+                .long("simulate")
+                .help("Run simulation of the narvie processor."),
         )
         .arg(
             Arg::with_name("baud")

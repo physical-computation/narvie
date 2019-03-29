@@ -14,7 +14,7 @@ cache: cargo
 
 
 before_install:
-  - cd subdirectory
+  - cd cli
 
 deploy:
   provider: releases

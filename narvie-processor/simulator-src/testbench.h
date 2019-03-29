@@ -5,32 +5,33 @@
 #include "uartsim.h"
 #include "verilated.h"
 #include <cstdlib>
-#include <memory>
 
-extern "C" {
-	void main_loop();
-}
-
-class TESTBENCH
+#ifdef __cplusplus
+extern "C"
 {
-	unsigned long m_tickcount;
-	Vnarvie m_core;
-	UARTSIM m_uart;
+#endif
 
-	bool m_is_evaluating;
-	unsigned long m_tx_byte_count;
-	bool m_is_tx;
-	unsigned long m_rxStart;
-	unsigned long m_evalStart;
-	unsigned long m_txStart;
+	typedef struct
+	{
+		unsigned long tickcount;
+		Vnarvie *core;
+		UartSimulator *uart;
 
-  public:
-	TESTBENCH();
+		bool is_evaluating;
+		unsigned long tx_byte_count;
+		bool is_tx;
+		unsigned long rxStart;
+		unsigned long evalStart;
+		unsigned long txStart;
 
-	virtual ~TESTBENCH() = default;
+	} NarvieSimulator;
 
-	virtual void tick();
-	virtual bool done();
-};
+	void NarvieSimulator_init(NarvieSimulator *simulator, Vnarvie *core, UartSimulator *uart);
+	int NarvieSimulator_tick(NarvieSimulator *simulator);
+	void main_loop(void (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -2,5 +2,6 @@
 
 int main(int argc, char **argv)
 {
-	main_loop();
+	// note: will segfault
+	main_loop(NULL, NULL, NULL);
 }

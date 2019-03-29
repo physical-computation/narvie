@@ -63,11 +63,11 @@ impl Error for NarviePortError {}
 
 impl<S: io::Read + io::Write, L: io::Write> io::Read for SerialLogger<S, L> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let res = self.stream.read(buf);
+        let bytes_read = self.stream.read(buf)?;
         if let Some(ref mut logger) = self.logger {
-            logger.write_all(buf)?;
+            logger.write_all(&buf[0..bytes_read])?;
         }
-        res
+        Ok(bytes_read)
     }
 }
 impl<S: io::Read + io::Write, L: io::Write> io::Write for SerialLogger<S, L> {

@@ -58,7 +58,7 @@ The only modifications made to the processor were related to breaking the pipeli
 
 The verilog UART modules can be found at <https://github.com/FPGAwars/FPGA-peripherals>.
 
-The verilator UART simulator testbench code (`testbench/uartsim.h` and `testbench/uartsim.h`) are copied unmodified from <https://github.com/ZipCPU/wbuart32>.
+The verilator UART simulator testbench code (`testbench/uartsim.h` and `testbench/uartsim.c`) are implemented based on <http://zipcpu.com/blog/2017/06/21/looking-at-verilator.html>.
 
 ---
 

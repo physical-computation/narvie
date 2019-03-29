@@ -1,6 +1,6 @@
 [package]
 name = "narvie-processor"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Harry Sarson <harry.sarson@hotmail.co.uk>"]
 edition = "2018"
 description = "Run a simulation of the narvie processor"

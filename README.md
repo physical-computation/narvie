@@ -62,20 +62,20 @@ The verilator UART simulator testbench code (`testbench/uartsim.h` and `testbenc
 
 ---
 
-### If you use `narvie` in your research, please cite it as:
+### Citing `narvie` in research
+
 Harry Sarson, Ryan Voo, and Phillip Stanley-Marbell. "Evaluating RISC-V Instructions Natively with Narvie". Poster, *Proceedings of the  European Conference on Systems (EuroSys'19)*. Dresden, Germany, March 2019.
 
 **BibTeX:**
-````
-@inproceedings{Sarson:2019,
- author = {Harry Sarson and Ryan Voo and Phillip Stanley-Marbell},
- title = {Evaluating RISC-V Instructions Natively with Narvie},
- booktitle = {Proceedings of the  European Conference on Systems},
- series = {EuroSys'19},
- year = {2019},
- location = {Dresden, Germany},
- numpages = {2},
- publisher = {ACM},
- address = {New York, NY, USA},
-}
-````
+
+        @inproceedings{Sarson:2019,
+        author = {Harry Sarson and Ryan Voo and Phillip Stanley-Marbell},
+        title = {Evaluating RISC-V Instructions Natively with Narvie},
+        booktitle = {Proceedings of the  European Conference on Systems},
+        series = {EuroSys'19},
+        year = {2019},
+        location = {Dresden, Germany},
+        numpages = {2},
+        publisher = {ACM},
+        address = {New York, NY, USA},
+        }

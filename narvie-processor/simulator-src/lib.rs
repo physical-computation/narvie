@@ -6,7 +6,7 @@ use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 #[link(name = "stdc++")]
 extern "C" {
     fn main_loop(
-        write: extern "C" fn(u8, *mut c_void) -> (),
+        write: extern "C" fn(u8, *mut c_void) -> c_int,
         try_read: extern "C" fn(*mut u8, *mut c_void) -> c_int,
         read_write_state: *mut c_void,
     );
@@ -17,11 +17,14 @@ struct ReadWriteState {
     reader: Receiver<u8>,
 }
 
-extern "C" fn write(byte: u8, state: *mut c_void) -> () {
+extern "C" fn write(byte: u8, state: *mut c_void) -> c_int {
     let state = state as *mut ReadWriteState;
     unsafe {
-        (*state).writer.send(byte).unwrap();
-    };
+        match (*state).writer.send(byte) {
+            Ok(()) => 0,
+            Err(_) => -1,
+        }
+    }
 }
 
 extern "C" fn read(byte: *mut u8, state: *mut c_void) -> c_int {
@@ -30,14 +33,13 @@ extern "C" fn read(byte: *mut u8, state: *mut c_void) -> c_int {
         match (*state).reader.try_recv() {
             Ok(value) => {
                 *byte = value;
-                return 1;
+                0
             }
-            Err(TryRecvError::Empty) => {
-                return 0;
-            }
-            _ => panic!(),
-        };
-    };
+            Err(TryRecvError::Empty) => 1,
+
+            Err(_) => -2,
+        }
+    }
 }
 
 pub fn run_narvie(sender: Sender<u8>, receiver: Receiver<u8>) {

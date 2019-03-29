@@ -253,11 +253,9 @@ int UARTSIM::rawtick(const int i_tx, const bool network)
 				nr = read(m_conrd, buf, 1);
 			if (1 == nr)
 			{
-
-				fprintf(stderr, "TX! %d\n", buf[0]);
 				m_tx_data = (-1 << (m_nbits + m_nparity + 1))
-							// << nstart_bits
-							| ((buf[0] << 1) & 0x01fe);
+					    // << nstart_bits
+					    | ((buf[0] << 1) & 0x01fe);
 				if (m_nparity)
 				{
 					int p;

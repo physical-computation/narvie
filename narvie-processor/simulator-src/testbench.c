@@ -80,7 +80,7 @@ int NarvieSimulator_tick(NarvieSimulator *simulator)
 	simulator->core->eval();
 }
 
-void main_loop(void (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state)
+void main_loop(int (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state)
 {
 	UartSimulator uart;
 	Vnarvie core;

@@ -4,7 +4,7 @@
 
 #define UART_BAUD_COUNTS (UART_CLOCK_RATE / UART_BAUD_RATE)
 
-void UartSimulator_init(UartSimulator *simulator, void (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state)
+void UartSimulator_init(UartSimulator *simulator, int (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state)
 {
         simulator->write = write;
         simulator->try_read = try_read;
@@ -83,9 +83,8 @@ int UartSimulator_tick(UartSimulator *simulator, int i_tx)
         if (simulator->tx_state == TXIDLE)
         {
                 uint8_t buf;
-                if (simulator->try_read(&buf, simulator->read_write_state))
+                if (simulator->try_read(&buf, simulator->read_write_state) == 0)
                 {
-                        fprintf(stderr, "TX! %d\n", buf);
                         simulator->tx_data = (-1 << (8 + 0 + 1))
                                              // << nstart_bits
                                              | ((buf << 1) & 0x01fe);

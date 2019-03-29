@@ -21,7 +21,10 @@ extern "C"
 
 	typedef struct
 	{
-		void (*write)(uint8_t, void *);
+		/* must return 0 on success, negative number on error. 	*/
+		int (*write)(uint8_t, void *);
+		/* must return 0 on read, 1 if there is no data and a 	*/
+		/* negative number on error. */
 		int (*try_read)(uint8_t *, void *);
 		void *read_write_state;
 
@@ -39,11 +42,7 @@ extern "C"
 
 	} UartSimulator;
 
-	//
-	// The constructor takes one argument: the port on the
-	// localhost to listen in on.  Once started; int connections may be made
-	// to this port to get the output from the port.
-	void UartSimulator_init(UartSimulator *simulator, void (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state);
+	void UartSimulator_init(UartSimulator *simulator, int (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state);
 
 	// This function is called on every tick.  The input is the
 	// the output txuart transmit wire from the device.  The output is to

@@ -15,6 +15,7 @@ cache: cargo
 
 before_install:
   - cd cli
+  - sudo apt install verilator
 
 deploy:
   provider: releases

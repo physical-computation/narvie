@@ -16,6 +16,9 @@ cache: cargo
 
 before_install:
   - cd cli
+
+  - sudo apt install ibudev-dev
+
   - wget https://www.veripool.org/ftp/verilator-3.916.tgz
   - unset VERILATOR_ROOT  # For bash
   - tar xvzf verilator*.t*gz

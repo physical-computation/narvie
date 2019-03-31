@@ -37,8 +37,9 @@ script: cargo build --verbose --all
 jobs:
   include:
     - stage: publish website
-      before_deploy:
+      install:
         - cargo build --release
+      before_deploy:
         - strip target/release/narvie-cli
       deploy:
         provider: releases

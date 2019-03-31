@@ -31,9 +31,8 @@ before_install:
   - sudo make install
   - popd
   - popd
-  - cd cli
 
-script: cargo build --verbose || cargo build --verbose
+script: cargo build --verbose --all
 
 jobs:
   include:

@@ -33,7 +33,7 @@ before_install:
   - popd
   - cd cli
 
-script: cargo build --verbose
+script: cargo build --verbose || cargo build --verbose
 
 jobs:
   include:

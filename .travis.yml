@@ -33,6 +33,8 @@ before_install:
   - popd
   - cd cli
 
+script: cargo build --verbose
+
 jobs:
   include:
     - stage: publish website

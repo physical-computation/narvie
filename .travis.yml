@@ -50,5 +50,5 @@ jobs:
         skip_cleanup: true
         draft: true
         on:
-          repo: harrysarson/narvie
+          repo: physical-computation/narvie
           branch: master

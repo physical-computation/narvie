@@ -32,7 +32,7 @@ verilator \
 --cc $VERILATOR_SRC/main.c $VERILATOR_SRC/testbench.c $VERILATOR_SRC/uartsim.c \
 --exe \
 -Mdir $OUT_DIR \
--CFLAGS "-std=c++11 -g -O3"
+-CFLAGS "-std=c++11 -g -O3 -fPIC"
 
 make -j -f Vnarvie.mk
 cp Vnarvie__ALL.a libvnarvie.a

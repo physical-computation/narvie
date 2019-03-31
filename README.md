@@ -6,35 +6,33 @@ Only UNIX systems have been tested.
 
 ## Installation
 
-* Download Rustup and install Rust. (<https://www.rust-lang.org/tools/install>)
-* `cd` into the `repl` subdirectory and run `cargo build`.
-
-To run the RISC-V REPL in simulation, `verilator` is needed.
-To synthesise the verilog and flash to an FPGA `./progMDP` uses `yosys`, `arachne-pnr` and `icestorm`.
-However, other tools can also be used for sythensis.
-`nc` is needed to forward the serial port to a `TCP` port.
+* [Download Rustup and install Rust](https://www.rust-lang.org/tools/install).
+* Run `$ cargo install narvie-cli`.
 
 ## Running
 
-You will need two terminals to run the RISC-V REPL.
+`narvie` can be run either as a simulation or by connecting a `narvie` processor (running on an FPGA) to your computer.
 
-### First Terminal
+Once the cli is running type RISC-V instructions into the prompt. Examples are `nop`, `li t0, 1678`, or `addi t0, t0, 1`. `narvie` will compile the instructions into binary, run them and display the new micro-architectural state (currently only the values of the registers are displayed). When done, use `ctrl-c` to quit `narvie`.
 
-#### Simulation
+### Simulation
 
-* `$ ./sim` to start the simulation.
+* To start a simulation try `$ narvie-cli --simulate`.
 
 #### Running on an FPGA
 
-* `$ ./progMDP` to synthesise the verilog and to flash the `narvie` processsor to a connected FPGA.
+* After connecting a `narvie` processor to your computer via usb run `$ narvie-cli ADDRESS --baud 115200` where `ADDRESS` is the serial port to which the processor is connected to. Replace `115200` with the baud rate that the processor is configured to use.
 
-### Second Terminal
+## Building `narvie`
 
-* Run `$ ./repl/target/debug/narvie --help`, `narvie` should display helpful output to the terminal.
-* To connect the `narvie` cli to a simulation run `$ ./repl/target/debug/narvie --tcp 8001`.
-* To connect the `narvie` cli to an FGPA run `$ ./repl/target/debug/narvie --baud 115200 ADDRESS` where `ADDRESS` is the serial port that the `narvie` processor is connected to. To list avialible serial ports, run `$ ./repl/target/debug/narvie` with no arguments.
-* Type instructions into the prompt. Examples are `nop`, `li t0, 1678`, or `addi t0, t0, 1`.
-* When done, use `ctrl-c` to quit the repl.
+To build `narvie-cli`, [`verilator` is needed](https://www.veripool.org/projects/verilator/wiki/Installing).
+To synthesise the verilog and flash to an FPGA `./progMDP` uses `yosys`, `arachne-pnr` and `icestorm`.
+However, other tools can also be used for sythensis.
+
+* Download Rustup and install Rust. (<https://www.rust-lang.org/tools/install>)
+* Clone this repository.
+* Run `cargo build` to build `narvie-cli`.
+* From the `processor` directory, run `./progMDP` to generate `narvie-processor`'s byte stream and to flash a lattice Mobile Development Board.
 
 ## Documentation
 

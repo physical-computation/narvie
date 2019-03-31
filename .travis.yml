@@ -10,20 +10,45 @@ matrix:
     - rust: nightly
   fast_finish: true
 
-cache: cargo
+cache:
+  cargo: true
+  directories:
+    - deps
 
 
 before_install:
-  - cd subdirectory
+  - sudo apt-get install libudev-dev
 
-deploy:
-  provider: releases
-  api_key:
-    secure: d78e4675e7fd26d945a0c5388e2039e544a0157b
-  file_glob: true
-  file: target/debug/narvie
-  skip_cleanup: true
-  draft: true
-  on:
-    repo: https://github.com/physical-computation/narvie
-    branch: master
+  - if [[ ! -d deps ]]; then mkdir deps ; fi
+  - pushd deps
+  - wget https://www.veripool.org/ftp/verilator-3.916.tgz
+  - unset VERILATOR_ROOT
+  - tar xvzf verilator*.t*gz
+  - pushd verilator*
+  - "./configure"
+  - make
+  - sudo make install
+  - popd
+  - popd
+
+install: cargo build --verbose --all
+script: cargo test --verbose --all
+
+jobs:
+  include:
+    - stage: publish website
+      install:
+        - cargo build --release
+      script: true
+      before_deploy:
+        - strip target/release/narvie-cli
+      deploy:
+        provider: releases
+        api_key:
+          secure: tmFWZiVWTQoK7OMvKt37ofz8D2ihZ02QXpLIisMyH3wW8uUAZp3HCmIkJc20xB9WVBFVAJxBR5aujolD6APzHAL3r4Js7EG5GQUNCmpr8RisX9n6OQ5ADtut2myfkvNHo2R1LxAhKxPl0i8ybz6jUzqH/zgRI+V7O9KlWWgE8bvZr5aEMSFt9q8sJrkOVxe5j0zXp6ChLrnHQw+wUlUq9nHfZFdEdRXJKLc5XpjIJrTY9dPkmVK0wJET4CRK32D9uUBmt4Plw3oARzObNmjKIreZmU0DY1bUmSDObc8O5S5R77cgbEWTNXfgRK6djTwcAFALHJ9xLsio6gewxNNXuLRIMhezA4YmiAfK4yJQm7CjcRPD5kUH62IoYzAAHMp78peSy4jT74LtCi2ZZVm+d5yaxv0fs3lVGUoNnxaN4zdykXWLH78ov3YSLWI0cDVLuXX+4S2d/r1ipPiFM+hTxHt/ScwD5syVVIzMBDk9TsQcRYNrbfMH+ZJVIzqXIhOD7UYXjOSmuyKthy+So0zjEdgR3jLA3fnoA9EENVvTw5OEcNvi5QCN3+SJHzBd7hNP1eBBuljMk1lSZsmWp4hdqekOdvKGUolQ+jbhbQgyHas1A626EpVi28rsVDO1hwDF75NdzRnfyOysJdxmwkc9xcBFHIGbwcLuES+R95WvgHk=
+        file: target/release/narvie-cli
+        skip_cleanup: true
+        draft: true
+        on:
+          repo: physical-computation/narvie
+          branch: master

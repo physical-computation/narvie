@@ -1,13 +1,13 @@
 extern crate byteorder;
 extern crate clap;
 extern crate directories;
+extern crate env_logger;
 extern crate log;
+extern crate narvie_processor;
 extern crate prettytable;
 extern crate rustyline;
 extern crate serialport;
-extern crate env_logger;
 extern crate time;
-extern crate narvie_processor;
 
 mod lib;
 
@@ -28,19 +28,15 @@ use std::net::TcpStream;
 use std::path::Path;
 use std::process;
 use std::str::FromStr;
-use std::time::Duration;
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
+use std::time::Duration;
 
 #[derive(Debug)]
 enum EvalInstructionError {
     Parse(instruction::Error),
     Write(io::Error),
     Read(io::Error),
-}
-
-struct SerialLogger<S: io::Read + io::Write, L: io::Write> {
-    stream: S,
-    logger: Option<L>,
 }
 
 trait ReadWrite: io::Read + io::Write {}
@@ -61,21 +57,62 @@ impl Debug for NarviePortError {
 }
 impl Error for NarviePortError {}
 
+struct SerialLogger<S: io::Read + io::Write, L: io::Write> {
+    stream: S,
+    logger: Option<L>,
+}
+
 impl<S: io::Read + io::Write, L: io::Write> io::Read for SerialLogger<S, L> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let res = self.stream.read(buf);
+        let bytes_read = self.stream.read(buf)?;
         if let Some(ref mut logger) = self.logger {
-            logger.write_all(buf)?;
+            logger.write_all(&buf[0..bytes_read])?;
         }
-        res
+        Ok(bytes_read)
     }
 }
+
 impl<S: io::Read + io::Write, L: io::Write> io::Write for SerialLogger<S, L> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.stream.write(buf)
     }
     fn flush(&mut self) -> io::Result<()> {
         self.stream.flush()
+    }
+}
+
+struct SimulationStream {
+    from_simulation: Receiver<u8>,
+    to_simulation: Sender<u8>,
+}
+
+impl io::Read for SimulationStream {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() == 0 {
+            Ok(0)
+        } else {
+            buf[0] = self
+                .from_simulation
+                .recv()
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            Ok(1)
+        }
+    }
+}
+
+impl io::Write for SimulationStream {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if buf.len() == 0 {
+            Ok(0)
+        } else {
+            self.to_simulation
+                .send(buf[0])
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            Ok(1)
+        }
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
     }
 }
 
@@ -298,32 +335,19 @@ where
         }
     }
 }
-
 fn narvie_port(matches: &clap::ArgMatches) -> Result<Box<dyn ReadWrite>, Box<Error>> {
     if matches.is_present("simulate") {
-        let tcp_port = 8001;
+        let (send1, recv1) = mpsc::channel();
+        let (send2, recv2) = mpsc::channel();
 
         thread::spawn(|| {
-			narvie_processor::run_narvie();
-		});
+            narvie_processor::run_narvie(send1, recv2);
+        });
 
-        thread::sleep(Duration::from_millis(500));
-
-        TcpStream::connect(("localhost", tcp_port))
-            .map_err(|e| {
-                error!(
-                    "
-narvie cannot connect to tcp port {}!
-
-Check that a simulation of the narvie processor is running and the that you
-are using the correct port address. Then run the narvie CLI again.",
-                    tcp_port
-                );
-                debug!("Error details: {:?}", e);
-                Box::new(e).into()
-            })
-            .map(Box::new)
-            .map(|b| Box::<dyn ReadWrite>::from(b))
+        Ok(Box::new(SimulationStream {
+            from_simulation: recv1,
+            to_simulation: send2,
+        }))
     } else if let Some(tcp_port) = matches.value_of("tcp-port") {
         let tcp_port = tcp_port.parse::<u16>().map_err(|e| {
             error!("Port for tcp must be a positive integer");
@@ -335,7 +359,6 @@ are using the correct port address. Then run the narvie CLI again.",
                 error!(
                     "
 narvie cannot connect to tcp port {}!
-
 Check that a simulation of the narvie processor is running and the that you
 are using the correct port address. Then run the narvie CLI again.",
                     tcp_port

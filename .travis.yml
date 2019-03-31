@@ -10,21 +10,28 @@ matrix:
     - rust: nightly
   fast_finish: true
 
-cache: cargo
+cache:
+  cargo: true
+  directories:
+    - deps
 
 
 before_install:
-  - cd cli
-
   - sudo apt-get install libudev-dev
 
+  - if [[ ! -d deps ]]; then mkdir deps ; fi
+  - pushd deps
   - wget https://www.veripool.org/ftp/verilator-3.916.tgz
   - unset VERILATOR_ROOT
   - tar xvzf verilator*.t*gz
-  - cd verilator*
+  - pushd verilator*
   - "./configure"
   - make
   - sudo make install
+  - popd
+  - popd
+
+  - cd cli
 
 deploy:
   provider: releases

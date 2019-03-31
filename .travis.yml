@@ -38,12 +38,13 @@ jobs:
   include:
     - stage: publish website
       before_deploy:
-        - ls -R
+        - cargo build --release
+        - strip target/release/narvie-cli
       deploy:
         provider: releases
         api_key:
           secure: tmFWZiVWTQoK7OMvKt37ofz8D2ihZ02QXpLIisMyH3wW8uUAZp3HCmIkJc20xB9WVBFVAJxBR5aujolD6APzHAL3r4Js7EG5GQUNCmpr8RisX9n6OQ5ADtut2myfkvNHo2R1LxAhKxPl0i8ybz6jUzqH/zgRI+V7O9KlWWgE8bvZr5aEMSFt9q8sJrkOVxe5j0zXp6ChLrnHQw+wUlUq9nHfZFdEdRXJKLc5XpjIJrTY9dPkmVK0wJET4CRK32D9uUBmt4Plw3oARzObNmjKIreZmU0DY1bUmSDObc8O5S5R77cgbEWTNXfgRK6djTwcAFALHJ9xLsio6gewxNNXuLRIMhezA4YmiAfK4yJQm7CjcRPD5kUH62IoYzAAHMp78peSy4jT74LtCi2ZZVm+d5yaxv0fs3lVGUoNnxaN4zdykXWLH78ov3YSLWI0cDVLuXX+4S2d/r1ipPiFM+hTxHt/ScwD5syVVIzMBDk9TsQcRYNrbfMH+ZJVIzqXIhOD7UYXjOSmuyKthy+So0zjEdgR3jLA3fnoA9EENVvTw5OEcNvi5QCN3+SJHzBd7hNP1eBBuljMk1lSZsmWp4hdqekOdvKGUolQ+jbhbQgyHas1A626EpVi28rsVDO1hwDF75NdzRnfyOysJdxmwkc9xcBFHIGbwcLuES+R95WvgHk=
-        file: target/debug/narvie-cli
+        file: target/release/narvie-cli
         skip_cleanup: true
         draft: true
         on:

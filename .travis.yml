@@ -32,13 +32,15 @@ before_install:
   - popd
   - popd
 
-script: cargo build --verbose --all
+install: cargo build --verbose --all
+script: cargo test --verbose --all
 
 jobs:
   include:
     - stage: publish website
       install:
         - cargo build --release
+      script: true
       before_deploy:
         - strip target/release/narvie-cli
       deploy:

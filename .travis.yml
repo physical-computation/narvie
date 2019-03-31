@@ -19,21 +19,20 @@ before_install:
   - sudo apt-get install libudev-dev
 
   - wget https://www.veripool.org/ftp/verilator-3.916.tgz
-  - unset VERILATOR_ROOT  # For bash
+  - unset VERILATOR_ROOT
   - tar xvzf verilator*.t*gz
   - cd verilator*
-  - ./configure
+  - "./configure"
   - make
   - sudo make install
 
 deploy:
   provider: releases
   api_key:
-    secure: d78e4675e7fd26d945a0c5388e2039e544a0157b
-  file_glob: true
-  file: target/debug/narvie
+    secure: YrVUBIQQs0do/AbJQ+IxWwzVc5WGuRDLTBNtcxeuukG+myXAKismBiH0zOpjfmzPYqELaLPmgf74m7GFayUIGbT/54+0Esu2GOjaAfzo2aDkvjCHyTwa4WVvVH/TmFSZLbl09DHn8WdQGol9UD7rCfQRlzNuamqYMPNP6WxP9TiD8M2XwmUI+Jt7DsKVdt5jzI5g5O0MOwg0HhDvqVj16P8B2Vx8b/ROMQJSvjtKGlLVX7ifmscTriSGvlAqgsh5rA+CUlGYhbD3+mk7+CtIhi+wB0tDcZjLPIQy8+bQ3bGkPaM+9GCOkMRqNqZeVC5iSy2CVByueIJXnVd5EgkatLgpjvbub8EV50EHM+FYez7oEs1/BK92ZBNZ5sj+fHtct2jClCBU8CWoYsOSo5c/QpLiQMVP9lRnVe0kwi6ZTDn7637h6zZzyLstAnGw6OmoZA3Ng5wrm1RVu1Pc7nCOgcABq0oXadO+sGLiuJ/CMoXCCvsYjR+d9d6YatBBOLrFb6DUOyeEiuO5jISlq9NPcuFQ3Y9Ea/thpYvBT5BXFrNd7rgxNEWBLe+LXITz4KsH/qlZPquJf0ruyZmJpCl7NswjmUPFgrZnxEhzEuQyjtbKRTdqpCPrYkwkhFBPq2V/DuSm6+KGkkWzaU8ErWf7IwMADwjVhL7iMoE3RQcXL9s=
+  file: "./cli/target/release/narvie-cli"
   skip_cleanup: true
   draft: true
   on:
-    repo: https://github.com/physical-computation/narvie
+    repo: harrysarson/narvie
     branch: master

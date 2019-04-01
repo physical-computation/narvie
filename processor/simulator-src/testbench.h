@@ -27,7 +27,7 @@ extern "C"
 	} NarvieSimulator;
 
 	void NarvieSimulator_init(NarvieSimulator *simulator, Vnarvie *core, UartSimulator *uart);
-	int NarvieSimulator_tick(NarvieSimulator *simulator);
+	void NarvieSimulator_tick(NarvieSimulator *simulator);
 	void main_loop(int (*write)(uint8_t, void *), int (*try_read)(uint8_t *, void *), void *read_write_state);
 
 #ifdef __cplusplus

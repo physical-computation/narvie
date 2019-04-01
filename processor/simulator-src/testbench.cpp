@@ -17,7 +17,7 @@ void NarvieSimulator_init(NarvieSimulator *simulator, Vnarvie *core, UartSimulat
 	simulator->txStart = 0;
 }
 
-int NarvieSimulator_tick(NarvieSimulator *simulator)
+void NarvieSimulator_tick(NarvieSimulator *simulator)
 {
 	simulator->core->rx = UartSimulator_tick(simulator->uart, simulator->core->tx);
 

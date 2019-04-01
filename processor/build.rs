@@ -29,10 +29,10 @@ verilator \
 --cc $VERILATOR_SRC/top_sim.v $MODULES $SAIL/config.vlt \
 -I$UART_RX \
 --prefix Vnarvie \
---cc $VERILATOR_SRC/main.c $VERILATOR_SRC/testbench.c $VERILATOR_SRC/uartsim.c \
+--cc $VERILATOR_SRC/main.cpp $VERILATOR_SRC/testbench.cpp $VERILATOR_SRC/uartsim.cpp \
 --exe \
 -Mdir $OUT_DIR \
--CFLAGS "-std=c++11 -g -O3 -fPIC"
+-CFLAGS "-std=c++11 -g -O3 -fPIC -Wall -Werror"
 
 make -j -f Vnarvie.mk
 cp Vnarvie__ALL.a libvnarvie.a

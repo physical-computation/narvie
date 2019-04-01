@@ -1,8 +1,9 @@
 # Changelog
 
-## [0.4.0] - unreleased
+## [0.3.1] - unreleased
 
 - Use cargo workspaces to organise `narvie`'s crates.
+- Use Travis CI to build distributable binaries.
 
 ## [0.3.0] - 2019-03-29
 

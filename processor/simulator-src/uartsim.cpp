@@ -25,7 +25,7 @@ void UartSimulator_init(UartSimulator *simulator, int (*write)(uint8_t, void *),
 
 int UartSimulator_tick(UartSimulator *simulator, int i_tx)
 {
-        int o_rx = 1, nr = 0;
+        int o_rx = 1;
 
         if ((!i_tx) && (simulator->last_tx))
                 simulator->rx_changectr = 0;
@@ -85,9 +85,7 @@ int UartSimulator_tick(UartSimulator *simulator, int i_tx)
                 uint8_t buf;
                 if (simulator->try_read(&buf, simulator->read_write_state) == 0)
                 {
-                        simulator->tx_data = (-1 << (8 + 0 + 1))
-                                             // << nstart_bits
-                                             | ((buf << 1) & 0x01fe);
+                        simulator->tx_data = ~0 | (buf << 1);
                         simulator->tx_busy = (1 << (8 + 0 + 1 + 1)) - 1;
                         simulator->tx_state = TXDATA;
                         o_rx = 0;

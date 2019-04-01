@@ -6,8 +6,11 @@ Only UNIX systems have been tested.
 
 ## Installation
 
-* [Download Rustup and install Rust](https://www.rust-lang.org/tools/install).
-* Run `$ cargo install narvie-cli`.
+Either [download a pre-built narvie binary (ubuntu linux)](https://github.com/physical-computation/narvie/releases/latest/download/narvie-cli) or build using cargo:
+
+1. [Download Rustup and install Rust](https://www.rust-lang.org/tools/install).
+2. [Install verilator](https://www.veripool.org/projects/verilator/wiki/Installing). Version 3.916 is recommended.
+3. Run `$ cargo install narvie-cli`.
 
 ## Running
 

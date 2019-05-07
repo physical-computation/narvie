@@ -1,5 +1,7 @@
 # `> narvie`
 
+[![Build Status](https://travis-ci.com/physical-computation/narvie.svg?branch=master)](https://travis-ci.com/physical-computation/narvie)
+
 A Read Eval Print Loop (REPL) for RISC-V instructions.
 Only UNIX systems have been tested.
 `narvie` stands for native RISC-V instruction evaluator.

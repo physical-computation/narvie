@@ -12,10 +12,16 @@ cache:
   directories:
     - deps
 
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    packages:
+      - libudev-dev
 
 before_install:
-  - sudo apt-get install libudev-dev
-
   - if [[ ! -d deps ]]; then mkdir deps ; fi
   - pushd deps
   - wget https://www.veripool.org/ftp/verilator-3.916.tgz

@@ -51,3 +51,4 @@ deploy:
   on:
     condition: $TRAVIS_RUST_VERSION = stable
     repo: physical-computation/narvie
+    branch: master

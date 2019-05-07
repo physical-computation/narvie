@@ -51,4 +51,3 @@ deploy:
   draft: true
   on:
     repo: physical-computation/narvie
-    branch: master

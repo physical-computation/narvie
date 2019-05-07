@@ -39,7 +39,7 @@ script: cargo test --verbose --all
 
 jobs:
   include:
-    - stage: publish website
+    - stage: publish binary
       install:
         - cargo build --release
       script: true

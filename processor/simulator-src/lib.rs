@@ -3,7 +3,8 @@ use std::os::raw::c_int;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 
 #[link(name = "vnarvie")]
-#[link(name = "stdc++")]
+#[cfg_attr(target_os = "macos", link(name = "c++"))]
+#[cfg_attr(not(target_os = "macos"), link(name = "stdc++"))]
 extern "C" {
     fn main_loop(
         write: extern "C" fn(u8, *mut c_void) -> c_int,

@@ -40,15 +40,15 @@ script: cargo test --verbose --all
 before_deploy:
   - cargo build --release
   - strip target/release/narvie-cli
-  - cp target/release/narvie-cli narvie-cli-$TRAVIS_TAG-$TARGET
+  - cp target/release/narvie-cli narvie-cli-$TRAVIS_OS_NAME
 deploy:
   provider: releases
   api_key:
     secure: "XPNjhzAUhhOZ87jmpo3XYkfEP4CBOy3DLPVTVDIDGh6zc2jnYOPMxghz7fA9FH8Kgk6DFETDF/eyda5JEa6r2B/7gVBGYvS49P/hMs1OAXqXEaq6fa3F4O+SzqE8LI48KF794ORwzMv1e1gh/GDcrfqxi8f4HKtyf+6Jyrh5iDlCVXbbHkqKOpgX9I0c0UWkNuGnLP913VAYx8ZfwzxPhnIh0T5DGPs1dwC7lhN+eALvj052+Juj2HGwyPzzHKFamBD3oCSMvUG2YOXX0Vh3LhvZQs3P7G6YNVSMEVXluJpJqg3Te3FHovjSpPjTwQr55zHmbxorbM0tE0B8LcNBJOWryLUoKQ/EmFUiUj4jOCNkosR6kDg6081BS+5EGDgq2717eS79M7WLCDVDKC439/iapZTGfnH0LcVNfR+BsSFIYr9nsSgfWKNlgKs5xaTj0IPI3shLetCAYAqN/jAOkS7M1lbtI1g4xfVHlJkWFgEniKUwwLyJere2v1Pf+rEVWzwEj+PlIzYXwtMmXwZxQiOkRDIKsRWUrLapY5Q6XaGCFKkhX1UzNu+Z9nRwlhieU/PXy4D2NgrsBssLwN2HgIsh/41csc7YcBQAgqmNHcl5UfFj9AVpGcVFvSfhMVijha6gxMwTkyVuuhAWFa12K5a6zqUN8LftO6wnSXmau4o="
-  file: narvie-cli-$TRAVIS_TAG-$TARGET
+  file: narvie-cli-$TRAVIS_OS_NAME
   skip_cleanup: true
-  draft: true
   on:
     condition: $TRAVIS_RUST_VERSION = stable
     repo: physical-computation/narvie
     branch: master
+    tags: true

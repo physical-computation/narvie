@@ -21,18 +21,7 @@ addons:
     packages:
       - libudev-dev
 
-before_install:
-  - if [[ ! -d deps ]]; then mkdir deps ; fi
-  - pushd deps
-  - wget https://www.veripool.org/ftp/verilator-3.916.tgz
-  - unset VERILATOR_ROOT
-  - tar xvzf verilator*.t*gz
-  - pushd verilator*
-  - "./configure"
-  - make
-  - sudo make install
-  - popd
-  - popd
+before_install: ./ci/before-install.sh
 
 install: cargo build --verbose --all
 script: cargo test --verbose --all

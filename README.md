@@ -63,6 +63,10 @@ The verilog UART modules can be found at <https://github.com/FPGAwars/FPGA-perip
 
 The verilator UART simulator testbench code (`testbench/uartsim.h` and `testbench/uartsim.c`) are implemented based on <http://zipcpu.com/blog/2017/06/21/looking-at-verilator.html>.
 
+## Minimum Version of Rust
+
+`narvie` will officially support current stable Rust only.
+
 ---
 
 ### Citing `narvie` in research

@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.3.1] - unreleased
+## [0.3.2] - 2019-05-08
+
+- Fix build on mac OS and release binary.
+
+## [0.3.1] - 2019-04-01
 
 - Use cargo workspaces to organise `narvie`'s crates.
 - Use Travis CI to build distributable binaries.

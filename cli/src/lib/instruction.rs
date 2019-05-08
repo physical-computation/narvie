@@ -532,7 +532,6 @@ where
                 ))?;
 
         if close_bracket_index != memory_location.len() - 1 {
-            dbg!(memory_location);
             return Err(InvalidArgument::MemoryLocation(
                 GetMemoryLocationError::TextAfterCloseParenthesis,
             ));

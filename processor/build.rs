@@ -1,51 +1,21 @@
 use std::env;
-use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::{Command};
+use std::io::{self, Write};
 
 fn main() {
-    let current_dir = env::current_dir().unwrap();
     let out_dir = env::var("OUT_DIR").unwrap();
-    let mut build = Command::new("bash").stdin(Stdio::piped()).spawn().unwrap();
 
-    {
-        let the_stdin_stream = build.stdin.as_mut().unwrap();
-        write!(
-            the_stdin_stream,
-            r#"
+    env::set_current_dir("build").unwrap();
 
-set -e
-set -v
+    let output = Command::new("make")
+        .arg("verilator")
+        .arg(format!("VERILATOR_OUT={}", out_dir))
+        .output().unwrap();
 
-OUT_DIR={}
-NARVIE_ROOT={}
-VERILATOR_SRC=$NARVIE_ROOT/simulator-src
+    io::stdout().write_all(&output.stdout).unwrap();
+    io::stderr().write_all(&output.stderr).unwrap();
 
-cd $OUT_DIR
-
-source $NARVIE_ROOT/module-list.sh
-
-verilator \
--Wall \
---cc $VERILATOR_SRC/top_sim.v $MODULES $SAIL/config.vlt \
--I$UART_RX \
---prefix Vnarvie \
---cc $VERILATOR_SRC/main.cpp $VERILATOR_SRC/testbench.cpp $VERILATOR_SRC/uartsim.cpp \
---exe \
--Mdir $OUT_DIR \
--CFLAGS "-std=c++11 -g -O3 -fPIC -Wall -Werror"
-
-make -j -f Vnarvie.mk
-cp Vnarvie__ALL.a libvnarvie.a
-ar -q libvnarvie.a testbench.o uartsim.o verilated.o
-
-    "#,
-            out_dir,
-            current_dir.to_str().unwrap()
-        )
-        .unwrap();
-    }
-
-    assert!(build.wait().unwrap().success());
+    assert!(output.status.success());
 
     println!(r"cargo:rustc-link-search={}", out_dir);
 }

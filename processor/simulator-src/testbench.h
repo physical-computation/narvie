@@ -6,6 +6,8 @@
 #include "verilated.h"
 #include <cstdlib>
 
+#define DO_TIMING 0
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -16,13 +18,14 @@ extern "C"
 		unsigned long tickcount;
 		Vnarvie *core;
 		UartSimulator *uart;
-
+#if DO_TIMING
 		bool is_evaluating;
 		unsigned long tx_byte_count;
 		bool is_tx;
 		unsigned long rxStart;
 		unsigned long evalStart;
 		unsigned long txStart;
+#endif
 
 	} NarvieSimulator;
 

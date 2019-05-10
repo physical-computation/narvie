@@ -3,18 +3,21 @@
 #include "Vnarvie.h"
 #include "verilated.h"
 
+
 void NarvieSimulator_init(NarvieSimulator *simulator, Vnarvie *core, UartSimulator *uart)
 {
 	simulator->tickcount = 0;
 	simulator->core = core;
 	simulator->uart = uart;
 
+#if DO_TIMING
 	simulator->is_evaluating = 0;
 	simulator->tx_byte_count = 0;
 	simulator->is_tx = 0;
 	simulator->rxStart = 0;
 	simulator->evalStart = 0;
 	simulator->txStart = 0;
+#endif
 }
 
 void NarvieSimulator_tick(NarvieSimulator *simulator)
@@ -24,6 +27,7 @@ void NarvieSimulator_tick(NarvieSimulator *simulator)
 	// Increment our own internal time reference
 	simulator->tickcount++;
 
+#if DO_TIMING
 	if (simulator->is_evaluating)
 	{
 		if (simulator->core->top_sim__DOT__m__DOT__register_files__DOT__instruction_rcv)
@@ -62,6 +66,7 @@ void NarvieSimulator_tick(NarvieSimulator *simulator)
 			simulator->rxStart = simulator->tickcount;
 		}
 	}
+#endif
 
 	// Make sure any combinatorial logic depending upon
 	// inputs that may have changed before we called tick()

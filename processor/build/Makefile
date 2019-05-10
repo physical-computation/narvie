@@ -41,7 +41,7 @@ fpga:
 $(VERILATOR_OUT):
 	mkdir $(VERILATOR_OUT)
 
-$(VERILATOR_OUT)/Vnarvie.mk:	$(VERILATOR_SRC)/top_sim.v		$(MODULES)				\
+$(VERILATOR_OUT)/libvnarvie.a:	$(VERILATOR_SRC)/top_sim.v		$(MODULES)				\
 				$(SAIL)/config.vlt $(UART_MODULES)	$(VERILATOR_SRC)/main.cpp		\
 				$(VERILATOR_SRC)/testbench.cpp		$(VERILATOR_SRC)/uartsim.cpp		\
 				$(VERILATOR_OUT)			Makefile
@@ -55,20 +55,16 @@ $(VERILATOR_OUT)/Vnarvie.mk:	$(VERILATOR_SRC)/top_sim.v		$(MODULES)				\
 		-Mdir $(VERILATOR_OUT) \
 		-CFLAGS "-std=c++11 -g -O3 -fPIC -Wall -Werror"
 
-
-
-$(VERILATOR_OUT)/libvnarvie.a: $(VERILATOR_OUT)/Vnarvie.mk Makefile
-	cd $(VERILATOR_OUT) && \
-	make -j -f Vnarvie.mk && \
-	cp Vnarvie__ALL.a libvnarvie.a && \
-	ar -q libvnarvie.a testbench.o uartsim.o verilated.o
+	cd $(VERILATOR_OUT) && make -j -f Vnarvie.mk
+	cp $(VERILATOR_OUT)/Vnarvie__ALL.a $(VERILATOR_OUT)/libvnarvie.a
+	ar -q $(VERILATOR_OUT)/libvnarvie.a $(VERILATOR_OUT)/testbench.o $(VERILATOR_OUT)/uartsim.o $(VERILATOR_OUT)/verilated.o
 
 fpga/$(PROJECT).blif: fpga $(MODULES) $(NARVIE_VERILOG)/top.v Makefile
 	cd $(SAIL) && \
-	yosys -p "synth_ice40 -blif $(ROOT_DIR)/fpga/$(PROJECT).blif;" $(MODULES) $(NARVIE_VERILOG)/top.v Makefile
+	yosys -p "synth_ice40 -blif $(ROOT_DIR)/fpga/$(PROJECT).blif;" $(MODULES) $(NARVIE_VERILOG)/top.v
 
-fpga/$(PROJECT).asc: ../$(PROJECT).pcf fpga/$(PROJECT).blif
-	arachne-pnr -d 5k -P uwg30 -p ../$(PROJECT).pcf ./fpga/$(PROJECT).blif -o fpga/$(PROJECT).asc Makefile
+fpga/$(PROJECT).asc: ../$(PROJECT).pcf fpga/$(PROJECT).blif Makefile
+	arachne-pnr -d 5k -P uwg30 -p ../$(PROJECT).pcf ./fpga/$(PROJECT).blif -o fpga/$(PROJECT).asc
 
 fpga/$(PROJECT).bin: fpga/$(PROJECT).asc Makefile
 	icepack fpga/$(PROJECT).asc fpga/$(PROJECT).bin

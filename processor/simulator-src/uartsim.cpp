@@ -85,7 +85,7 @@ int UartSimulator_tick(UartSimulator *simulator, int i_tx)
                 uint8_t buf;
                 if (simulator->try_read(&buf, simulator->read_write_state) == 0)
                 {
-                        simulator->tx_data = ((~0) << (8 + 0 + 1)) | (buf << 1);
+                        simulator->tx_data = ((~0u) << (8 + 0 + 1)) | (buf << 1);
                         simulator->tx_busy = (1 << (8 + 0 + 1 + 1)) - 1;
                         simulator->tx_state = TXDATA;
                         o_rx = 0;

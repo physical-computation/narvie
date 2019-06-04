@@ -295,7 +295,7 @@ where
     loop {
         match rl.readline("> ") {
             Ok(line) => {
-                rl.add_history_entry(line.as_ref());
+                rl.add_history_entry(AsRef::<str>::as_ref(&line));
                 if let Some(file) = history_file_path {
                     if rl.save_history(file).is_err() {
                         warn!("Error saving history to file");

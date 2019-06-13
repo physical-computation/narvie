@@ -1,6 +1,7 @@
 # `> narvie`
 
 [![Build Status](https://travis-ci.com/physical-computation/narvie.svg?branch=master)](https://travis-ci.com/physical-computation/narvie)
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=physical-computation/narvie)](https://dependabot.com)
 
 A Read Eval Print Loop (REPL) for RISC-V instructions.
 Only UNIX systems have been tested.

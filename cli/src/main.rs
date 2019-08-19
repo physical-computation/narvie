@@ -279,7 +279,7 @@ where
     Ok(())
 }
 
-fn run<'a, F>(mut evaluator: F, history_file_path: Option<&'a Path>) -> Result<(), Box<Error>>
+fn run<'a, F>(mut evaluator: F, history_file_path: Option<&'a Path>) -> Result<(), Box<dyn Error>>
 where
     for<'b> F: FnMut(&'b str) -> Result<(), EvalInstructionError>,
 {
@@ -335,7 +335,7 @@ where
         }
     }
 }
-fn narvie_port(matches: &clap::ArgMatches) -> Result<Box<dyn ReadWrite>, Box<Error>> {
+fn narvie_port(matches: &clap::ArgMatches) -> Result<Box<dyn ReadWrite>, Box<dyn Error>> {
     if matches.is_present("simulate") {
         let (send1, recv1) = mpsc::channel();
         let (send2, recv2) = mpsc::channel();

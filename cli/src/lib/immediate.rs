@@ -12,8 +12,8 @@ where
     const MIN: i32;
     const EVEN: bool;
 
-    fn from_special_string(&str) -> Option<Immediate<Self>>;
-    fn write_help(&Immediate<Self>, &mut fmt::Formatter) -> fmt::Result;
+    fn from_special_string(string: &str) -> Option<Immediate<Self>>;
+    fn write_help(imm: &Immediate<Self>, fmt: &mut fmt::Formatter) -> fmt::Result;
 }
 
 #[derive(Debug)]

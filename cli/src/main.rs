@@ -1,4 +1,3 @@
-extern crate byteorder;
 extern crate clap;
 extern crate directories;
 extern crate env_logger;
@@ -11,7 +10,6 @@ extern crate time;
 
 mod lib;
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use clap::{App, Arg};
 use directories::ProjectDirs;
 use lib::instruction::{self, Instruction};
@@ -263,15 +261,16 @@ where
 
     assembly_table(&instruction).printstd();
 
-    port.write_u32::<LittleEndian>(instruction.to_u32())
+    port.write_all(&instruction.to_u32().to_le_bytes())
         .map_err(EvalInstructionError::Write)?;
 
     let mut reg_file = [0; 32];
 
     for i in 0..32 {
-        reg_file[i] = port
-            .read_u32::<LittleEndian>()
+        let mut buf = [0; 4];
+        port.read_exact(&mut buf)
             .map_err(EvalInstructionError::Read)?;
+        reg_file[i] = u32::from_le_bytes(buf);
     }
 
     reg_file_table(&reg_file).printstd();

@@ -1,5 +1,5 @@
-use lib::immediate::{self, Immediate, InvalidImmediate};
-use lib::register::{GetRegisterError, Rd, Register, Rs1, Rs2};
+use crate::lib::immediate::{self, Immediate, InvalidImmediate};
+use crate::lib::register::{GetRegisterError, Rd, Register, Rs1, Rs2};
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;

@@ -1,6 +1,6 @@
 use std::env;
-use std::process::{Command};
 use std::io::{self, Write};
+use std::process::Command;
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -10,7 +10,8 @@ fn main() {
     let output = Command::new("make")
         .arg("verilator")
         .arg(format!("VERILATOR_OUT={}", out_dir))
-        .output().unwrap();
+        .output()
+        .unwrap();
 
     io::stdout().write_all(&output.stdout).unwrap();
     io::stderr().write_all(&output.stderr).unwrap();

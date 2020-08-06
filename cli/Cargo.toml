@@ -13,7 +13,7 @@ categories = ["command-line-utilities", "hardware-support", "science"]
 
 
 [dependencies]
-clap = "2.33.1"
+clap = "2.33.2"
 rustyline = "5.0.1"
 directories = "2.0.2"
 log = "0.4.8"

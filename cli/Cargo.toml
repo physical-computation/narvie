@@ -20,5 +20,5 @@ log = "0.4.11"
 env_logger = "0.6.2"
 prettytable-rs = "0.8.0"
 serialport = "3.3.0"
-time = "0.1"
+time = "0.2"
 narvie-processor = { path = "../processor", version = "0.3.3" }

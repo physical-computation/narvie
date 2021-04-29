@@ -1,0 +1,14 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: serialport
+    versions:
+    - 4.0.0
+  - dependency-name: env_logger
+    versions:
+    - 0.8.2
